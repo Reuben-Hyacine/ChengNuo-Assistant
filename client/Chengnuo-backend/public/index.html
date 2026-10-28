@@ -1,0 +1,3204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客户端测试台</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #0f1117; color: #cbd1de;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: #161b26; border-bottom: 1px solid #2a3040;
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8b95a9; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #8b95a9; display: inline-block; }
+  .dot.on { background: #3fb950; }
+  .dot.off { background: #f85149; }
+  .spacer { flex: 1; }
+  button {
+    background: #212534; color: #cbd1de; border: 1px solid #2a3040;
+    border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  }
+  button:hover { background: #2a3040; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.primary { background: #4a6cf7; border-color: #4a6cf7; color: #fff; }
+  button.primary:hover { background: #5b7dff; }
+  button.primary:disabled { background: #2a3550; border-color: #2a3550; }
+  label { font-size: 12px; color: #8b95a9; display: block; margin-bottom: 4px; }
+  .composer {
+    padding: 12px 16px 10px; border-bottom: 1px solid #2a3040;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row select {
+    background: #161b26; color: #cbd1de; border: 1px solid #2a3040;
+    border-radius: 6px; padding: 6px 10px; font-size: 13px;
+  }
+  .composer textarea {
+    width: 100%; background: #161b26; color: #cbd1de;
+    border: 1px solid #2a3040; border-radius: 6px; padding: 8px 10px;
+    font-size: 13px; font-family: Consolas, monospace; resize: vertical;
+  }
+  .composer textarea:focus { outline: none; border-color: #4a6cf7; }
+  .hint { font-size: 12px; color: #f85149; }
+  .cardbar {
+    margin: 8px 16px 0; padding: 8px 12px;
+    background: #161b26; border: 1px solid #2a3040; border-radius: 8px;
+  }
+  .cardbar-head {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: #8b95a9; margin-bottom: 8px;
+  }
+  .card-hint { color: #6b7488; }
+  .cardgrid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .cfield {
+    background: #0f1117; border: 1px solid #20242f; border-radius: 6px;
+    padding: 6px 9px; min-height: 44px;
+  }
+  .cfield .cflabel { font-size: 11px; color: #8b95a9; }
+  .cfield .cfval { font-size: 13px; color: #cbd1de; word-break: break-all; line-height: 1.35; }
+  .cfield.empty .cfval { color: #6b7488; font-style: italic; }
+  .manual-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mfield input {
+    width: 100%; background: #0f1117; color: #cbd1de; border: 1px solid #20242f;
+    border-radius: 6px; padding: 6px 9px; font-size: 13px; box-sizing: border-box;
+  }
+  .mfield input:focus { outline: none; border-color: #4a6cf7; }
+  #replyBox {
+    font-size: 14px; color: #cbd1de; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-all; min-height: 24px;
+  }
+  #main { flex: 1; display: flex; min-height: 0; margin-top: 8px; }
+  #left { flex: 1 1 58%; display: flex; flex-direction: column; min-width: 0; }
+  #right { flex: 1 1 42%; display: flex; flex-direction: column; min-width: 0; border-left: 1px solid #2a3040; }
+  .panel-title {
+    padding: 8px 16px; border-bottom: 1px solid #2a3040;
+    font-size: 12px; color: #58a6ff; font-weight: 600;
+    background: #12141d;
+  }
+  #log { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .entry { background: #161b26; border: 1px solid #2a3040; border-radius: 8px; }
+  .entry-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-bottom: 1px solid #2a3040;
+    font-size: 12px; color: #8b95a9; font-family: Consolas, monospace;
+  }
+  .tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .tag.out { background: #1f3a5f; color: #58a6ff; }
+  .tag.in { background: #15543b; color: #3fb950; }
+  .entry pre {
+    background: #0f1117; border: 1px solid #20242f; border-radius: 6px;
+    padding: 8px 10px; margin: 6px 12px 10px; font-size: 12px; line-height: 1.5;
+    overflow: auto; white-space: pre-wrap; word-break: break-all;
+    max-height: 320px; overflow-y: auto; font-family: Consolas, monospace;
+  }
+  .meta { padding: 4px 12px 4px; font-size: 12px; color: #8b95a9; }
+  .copy {
+    background: #212534; color: #8b95a9; border: 1px solid #2a3040;
+    border-radius: 4px; padding: 2px 10px; font-size: 11px; cursor: pointer;
+  }
+  .copy:hover { color: #cbd1de; }
+  .empty { color: #6b7488; font-size: 13px; padding: 16px; }
+  .reminder-pop {
+    position: fixed; right: 16px; bottom: 16px; z-index: 999;
+    display: flex; flex-direction: column; gap: 10px; max-width: 340px;
+  }
+  .reminder-item {
+    background: #1c2433; border: 1px solid #4a6cf7; border-radius: 8px;
+    padding: 10px 12px; box-shadow: 0 4px 18px rgba(0,0,0,.45);
+  }
+  .reminder-item .rtitle { font-size: 13px; color: #58a6ff; font-weight: 600; margin-bottom: 4px; }
+  .reminder-item .rbody { font-size: 13px; color: #cbd1de; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+  .reminder-item .rrow { display: flex; justify-content: flex-end; margin-top: 8px; }
+  #users { flex: 1; overflow-y: auto; padding: 8px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .uentry { background: #161b26; border: 1px solid #2a3040; border-radius: 8px; padding: 8px 12px; }
+  .uhead { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8b95a9; font-family: Consolas, monospace; }
+  .udir { padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .udir.out { background: #1f3a5f; color: #58a6ff; }
+  .udir.in { background: #15543b; color: #3fb950; }
+  .ucontent { margin-top: 6px; font-size: 12px; color: #cbd1de; white-space: pre-wrap; word-break: break-all; }
+  .chat-wrap { display: flex; gap: 10px; min-height: 300px; }
+  .chat-side { flex: 0 0 210px; max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .chat-side-item {
+    padding: 7px 9px; border: 1px solid #2a3040; border-radius: 6px; background: #161b26;
+    cursor: pointer; font-size: 12px; color: #cbd1de;
+  }
+  .chat-side-item:hover { border-color: #3a4560; }
+  .chat-side-item.active { border-color: #4a6cf7; background: #1a2136; }
+  .chat-side-item .cs-head { display: flex; align-items: center; gap: 6px; }
+  .chat-side-item .cs-name { font-weight: 600; }
+  .chat-side-item .cs-unread { color: #f85149; font-weight: 600; font-size: 11px; }
+  .chat-side-item .cs-last { color: #8b95a9; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; border: 1px solid #20242f; border-radius: 8px; background: #0f1117; }
+  .chat-head { padding: 7px 12px; border-bottom: 1px solid #2a3040; font-size: 12px; color: #58a6ff; font-weight: 600; }
+  .chat-msgs { flex: 1; overflow-y: auto; max-height: 230px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .chat-msg {
+    max-width: 80%; border-radius: 10px; padding: 6px 10px; font-size: 13px; line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .chat-msg.me { align-self: flex-end; background: #1f3a5f; color: #dbe4f5; }
+  .chat-msg.peer { align-self: flex-start; background: #161b26; border: 1px solid #2a3040; color: #cbd1de; }
+  .chat-msg .mtime { display: block; font-size: 10px; color: #8b95a9; margin-top: 3px; }
+  .chat-cardmsg { border: 1px solid #4a6cf7; border-radius: 8px; padding: 7px 9px; margin-top: 5px; background: rgba(74,108,247,.08); font-size: 12px; }
+  .chat-cardmsg .cc-row { display: flex; gap: 6px; line-height: 1.6; }
+  .chat-cardmsg .cc-label { color: #8b95a9; flex: 0 0 auto; }
+  .chat-cardmsg .cc-val { color: #cbd1de; word-break: break-all; }
+  .chat-cardmsg .cc-state { margin-top: 5px; color: #3fb950; font-size: 11px; }
+  .chat-cardmsg .cc-state.wait { color: #8b95a9; }
+  .chat-input-row { display: flex; gap: 8px; padding: 8px 12px; border-top: 1px solid #2a3040; }
+  .chat-input-row input {
+    flex: 1; background: #161b26; color: #cbd1de; border: 1px solid #2a3040;
+    border-radius: 6px; padding: 6px 10px; font-size: 13px;
+  }
+  .chat-input-row input:focus { outline: none; border-color: #4a6cf7; }
+  .chat-picker-mask {
+    position: fixed; inset: 0; z-index: 1000; background: rgba(4,6,10,.6);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chat-picker-dialog {
+    width: 460px; max-width: calc(100vw - 40px); max-height: 72vh;
+    background: #10141d; border: 1px solid #2a3040; border-radius: 10px;
+    box-shadow: 0 10px 36px rgba(0,0,0,.55);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .chat-picker-dialog .cpd-head {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    border-bottom: 1px solid #2a3040; font-size: 13px; font-weight: 600; color: #58a6ff;
+  }
+  .chat-picker-dialog .cpd-sub { padding: 6px 14px; font-size: 11px; color: #8b95a9; border-bottom: 1px solid #20242f; line-height: 1.6; }
+  .chat-picker-dialog .cpd-list { flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .cpd-item { border: 1px solid #2a3040; border-radius: 8px; background: #161b26; padding: 8px 10px; cursor: pointer; }
+  .cpd-item:hover { border-color: #3a4560; }
+  .cpd-item.active { border-color: #4a6cf7; background: #1a2136; }
+  .cpd-item .ci-title { font-size: 13px; color: #cbd1de; font-weight: 600; margin-bottom: 3px; }
+  .cpd-item .ci-row { display: flex; gap: 6px; font-size: 12px; line-height: 1.6; }
+  .cpd-item .ci-label { color: #8b95a9; flex: 0 0 auto; }
+  .cpd-item .ci-val { color: #cbd1de; word-break: break-all; }
+  .chat-picker-dialog .cpd-foot { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid #2a3040; }
+  .chat-picker-dialog .cpd-foot .card-hint { font-size: 11px; color: #8b95a9; }
+  .chat-picker-dialog .cpd-foot button:disabled { opacity: .45; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<header>
+  <h1>客户端测试台</h1>
+  <div class="status"><span class="dot on" id="dotC"></span><span id="statusC">检查客户端…</span></div>
+  <div class="status"><span class="dot" id="dotS"></span><span id="statusS">服务器状态：未知</span></div>
+  <div class="spacer"></div>
+  <button id="refreshConnBtn">刷新连接</button>
+  <button id="refreshServicesBtn">查询服务器服务</button>
+  <button id="clearCtxBtn">清空对话记录</button>
+  <button id="clearBtn">清空日志</button>
+</header>
+<div class="composer" style="border-bottom:0; padding:10px 16px;">
+  <div class="row">
+    <label style="margin:0">账号</label>
+    <input id="authAccount" placeholder="账号" style="background:#161b26;color:#cbd1de;border:1px solid #2a3040;border-radius:6px;padding:6px 10px;font-size:13px;width:140px;">
+    <label style="margin:0">密码</label>
+    <input id="authPassword" type="password" placeholder="密码" style="background:#161b26;color:#cbd1de;border:1px solid #2a3040;border-radius:6px;padding:6px 10px;font-size:13px;width:140px;">
+    <button id="authRegisterBtn">注册</button>
+    <button class="primary" id="authLoginBtn">登录</button>
+    <button id="authLogoutBtn" disabled>退出登录</button>
+    <button id="authDeleteBtn" disabled>注销账号</button>
+    <span id="authStatus" style="font-size:12px;color:#8b95a9;">请登录</span>
+  </div>
+  <div class="row">
+    <label style="margin:0">服务器</label>
+    <select id="srvSel" style="min-width:300px"></select>
+    <input id="srvInput" placeholder="自定义 IP:PORT（如 192.168.1.50:3000）" style="background:#161b26;color:#cbd1de;border:1px solid #2a3040;border-radius:6px;padding:6px 10px;font-size:13px;width:240px;">
+    <button id="srvApplyBtn">切换</button>
+    <span id="srvStatus" style="font-size:12px;color:#8b95a9;">当前：读取中…</span>
+  </div>
+</div>
+<div class="composer">
+  <div class="row">
+    <label style="margin:0">服务编号（AI 调用编号 = 0）</label>
+    <select id="serviceSel"></select>
+    <button class="primary" id="sendBtn">发送到服务器</button>
+    <span class="hint" id="hint"></span>
+  </div>
+  <div>
+    <label>输入框（任务，Enter 发送）</label>
+    <textarea id="payload" rows="3" placeholder="例如：我要复习英语六级，帮我安排一下"></textarea>
+  </div>
+  <div class="row">
+    <button class="primary" id="doneBtn">确定</button>
+    <button id="cancelBtn">取消</button>
+    <button id="manualBtn">手动制作</button>
+    <button id="visBtn">私人</button>
+    <button id="foBtn">所有人</button>
+    <button id="naBtn">直接加入</button>
+    <label style="margin:0">人数上限</label>
+    <input id="capInput" type="number" min="1" step="1" value="1" title="人数上限（含发起者本人），最小 1" style="background:#161b26;color:#cbd1de;border:1px solid #2a3040;border-radius:6px;padding:5px 9px;font-size:13px;width:76px;">
+    <label style="margin:0">邀请好友</label>
+    <input id="inviteInput" placeholder="好友账号" style="background:#161b26;color:#cbd1de;border:1px solid #2a3040;border-radius:6px;padding:5px 9px;font-size:13px;width:110px;">
+    <button id="inviteBtn">邀请</button>
+    <span class="card-hint">公开/私人：设置卡片时默认「私人」；人数上限 > 1 自动切为「公开」（上限默认增至 2），切回「私人」时上限还原为 1 并清空参与人；确定后自动建组存入对应卡片组库 · 仅好友：只有好友能看到（仅对公开卡片生效） · 需要申请：他人点「+」需创建者同意后才加入 · 邀请：仅限好友，邀请后写入参与人</span>
+    <span class="hint" id="hint2"></span>
+  </div>
+</div>
+<div class="cardbar" id="manualBar" style="display:none">
+  <div class="cardbar-head">
+    <span>手动制作卡片 <span class="card-hint">（自己填写卡片内容，点「写入当前卡片」后再点上方「确定」保存；留空的字段会被清空；也可先写入再让 AI 继续完善）</span></span>
+    <span style="flex:1"></span>
+    <button class="copy" id="manualCloseBtn">收起</button>
+  </div>
+  <div class="manual-grid">
+    <div class="mfield"><label>目的</label><input id="mfPurpose" placeholder="如：复习英语六级"></div>
+    <div class="mfield"><label>事件（必填）</label><input id="mfEvent" placeholder="如：背单词 100 个"></div>
+    <div class="mfield"><label>地点</label><input id="mfLocation" placeholder="如：图书馆 3 楼"></div>
+    <div class="mfield"><label>时间（必填，绝对时间）</label><input id="mfTime" placeholder="2026-10-02 10:00 或 2026-10-02 10:00~12:00"></div>
+    <div class="mfield"><label>提醒时间（必填，绝对时间）</label><input id="mfReminder" placeholder="与「时间」同格式，如 2026-10-02 09:30"></div>
+    <div class="mfield"><label>重复时间</label><input id="mfRepeat" placeholder="如：每天 / 每周一"></div>
+    <div class="mfield"><label>重复到何时</label><input id="mfRepeatUntil" placeholder="如：2026-12-31"></div>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="primary" id="manualApplyBtn">写入当前卡片</button>
+    <span class="card-hint">「事件 + 时间 + 提醒时间」填齐且格式正确（YYYY-MM-DD HH:mm，可带 ~ 时段）后才能「确定」；人数上限 / 公开私人 / 邀请好友用上方按钮设置</span>
+    <span class="hint" id="manualHint"></span>
+  </div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>当前卡片 <span class="card-hint">（有信息显示卡片，无信息显示空卡）</span></span>
+  </div>
+  <div class="cardgrid" id="cardFields"></div>
+  <div class="cardbar-head" style="margin-top:10px">
+    <span>参与人 <span class="card-hint">（确定卡片前可删除；人数上限=1（私人）时不保留参与人）</span></span>
+  </div>
+  <div id="cardPartBox"><div class="empty">（暂无参与人）</div></div>
+  <div class="cardbar-head" style="margin-top:10px">
+    <span>时间冲突 <span class="card-hint">（与已有卡片重叠时无法「确定」）</span></span>
+  </div>
+  <div id="conflictBox"><div class="empty">（无冲突）</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>AI 回复 <span class="card-hint">（最新一轮回复）</span></span>
+  </div>
+  <div id="replyBox">（暂无回复）</div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>日程提醒 <span class="card-hint">（按卡片「提醒时间」到点提醒；登录后每 30 秒自动检查，需保持本页面开启）</span></span>
+    <span style="flex:1"></span>
+    <span class="card-hint" id="remindStatus">未登录</span>
+  </div>
+  <div id="remindBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>公开卡片组库 <span class="card-hint">（所有公开卡片组；组内「仅好友」卡片只有组创建者的好友能看到；可加入组内卡片，加入后同时成为组成员）</span></span>
+  </div>
+  <div id="libBox"><div class="empty">（空）</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>私人卡片组库 <span class="card-hint">（仅账号 <span id="privAccount">未登录</span> 可见的私人卡片组；「确定」私人卡片时自动建组存入；点「转公开」把整组转入公开卡片组库后可发送给好友）</span></span>
+    <span style="flex:1"></span>
+    <span class="card-hint" id="privBackupHint">本地备份：—</span>
+  </div>
+  <div id="privBox"><div class="empty">（空）</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>明信片 <span class="card-hint">（把卡片标记「完成」时自动生成：AI 只按这一张卡片的时间与事件写成一句祝福；长期保存在客户端本地文本文件 data/postcards.txt，服务器不保存）</span></span>
+    <span style="flex:1"></span>
+    <button class="copy" id="postRefreshBtn">刷新</button>
+  </div>
+  <div id="postBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>周报 <span class="card-hint">（今周 + 上一周 + 注册以来累计：卡片数（我设置/参与、时间段与本周有交集的卡片）、打卡数（每张卡片每天一次）、完成数（完成时同步给当天打卡 +1）、延时数（使用延期的次数，无论申请是否被同意）；只保存在客户端本地文件 data/reports.txt）</span></span>
+    <span style="flex:1"></span>
+    <span class="card-hint" id="reportMeta"></span>
+    <button class="copy" id="reportRefreshBtn">刷新</button>
+  </div>
+  <div id="reportBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>我的卡片组 <span class="card-hint">（我创建/加入的卡片组；创建者可加卡/删卡/指定完成者（组内成员或本人）；私人卡片组完成者固定为发起者本人且不可修改；创建者或被指定完成者可把卡片标记为已完成；每张卡片可点「打卡」只计数（同一天同一张卡片一次，计入周报）；可在好友聊天发送整组或组内单卡邀请好友）</span></span>
+    <span style="flex:1"></span>
+    <input id="groupNameInput" placeholder="卡片组名称，如：毕业旅行" style="background:#161b26;color:#cbd1de;border:1px solid #2a3040;border-radius:6px;padding:5px 9px;font-size:12px;width:170px;">
+    <label style="font-size:12px;color:#8b95a9"><input type="checkbox" id="groupPrivateInput"> 私人</label>
+    <button class="copy" id="groupCreateBtn">创建卡片组</button>
+    <button class="copy" id="groupRefreshBtn">刷新</button>
+  </div>
+  <div id="groupBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>卡片申请 <span class="card-hint">（他人申请加入我创建的组内卡片，同意后对方写入参与人并成为组成员）</span></span>
+    <span style="flex:1"></span>
+    <button class="copy" id="cardReqRefreshBtn">刷新</button>
+  </div>
+  <div id="cardReqBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>延期申请 <span class="card-hint">（我创建的组内卡片，被指定「完成权限」的成员提交的延期申请；同意后卡片时间改为其申请的时间，拒绝则不变；无论同意或拒绝都会回执通知申请者）</span></span>
+    <span style="flex:1"></span>
+    <button class="copy" id="extReqRefreshBtn">刷新</button>
+  </div>
+  <div id="extReqBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>通知 <span class="card-hint">（延期申请被同意/拒绝后的结果提示，与收件箱并行投递）</span></span>
+    <span style="flex:1"></span>
+    <span class="card-hint" id="noticeUnread"></span>
+    <button class="copy" id="noticeReadAllBtn">全部已读</button>
+    <button class="copy" id="noticeClearBtn">清空通知</button>
+    <button class="copy" id="noticeRefreshBtn">刷新</button>
+  </div>
+  <div id="noticeBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>用户列表 <span class="card-hint">（点击 + 发送好友申请）</span></span>
+    <span style="flex:1"></span>
+    <input id="userSearch" placeholder="搜索账号" style="background:#161b26;color:#cbd1de;border:1px solid #2a3040;border-radius:6px;padding:5px 9px;font-size:12px;width:150px;">
+    <button class="copy" id="userSearchBtn">搜索</button>
+  </div>
+  <div id="userBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>好友收件箱 <span class="card-hint">（登录后自动收取好友申请）</span></span>
+    <span style="flex:1"></span>
+    <button class="copy" id="inboxRefreshBtn">刷新</button>
+  </div>
+  <div id="inboxBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>收件箱 <span class="card-hint">（服务器发给你的信息除各自通道外都会抄送一份到这里：日程提醒到点、好友申请、卡片加入申请、延期申请及延期结果；登录后每 30 秒自动检查）</span></span>
+    <span style="flex:1"></span>
+    <span class="card-hint" id="mailUnread"></span>
+    <button class="copy" id="mailReadAllBtn">全部已读</button>
+    <button class="copy" id="mailClearBtn">清空收件箱</button>
+    <button class="copy" id="mailRefreshBtn">刷新</button>
+  </div>
+  <div id="mailBox"><div class="empty">请先登录账号</div></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>好友聊天 <span class="card-hint">（仅好友之间可互发消息；点「发送我的卡片」弹窗选择我创建的公开卡片组里的单张卡片邀请 TA 加入；点「发送卡片组」可把整个卡片组发给好友邀请加入；登录后每 10 秒自动检查新消息）</span></span>
+    <span style="flex:1"></span>
+    <span class="card-hint" id="chatStatus">未登录</span>
+    <button class="copy" id="chatRefreshBtn">刷新</button>
+  </div>
+  <div class="chat-wrap">
+    <div class="chat-side" id="chatSide"><div class="empty">请先登录账号</div></div>
+    <div class="chat-main">
+      <div class="chat-head" id="chatPeer">选择左侧好友开始聊天</div>
+      <div class="chat-msgs" id="chatMsgs"><div class="empty">（未选择会话）</div></div>
+      <div class="chat-input-row">
+        <input id="chatInput" placeholder="输入消息，Enter 发送" disabled>
+        <button id="chatSendBtn" disabled>发送</button>
+        <button id="chatCardBtn" disabled>发送我的卡片</button>
+        <button id="chatGroupBtn" disabled>发送卡片组</button>
+      </div>
+      <div class="chat-picker-mask" id="chatPicker" style="display:none">
+        <div class="chat-picker-dialog">
+          <div class="cpd-head">
+            <span>选择要发送的卡片</span>
+            <span style="flex:1"></span>
+            <button class="copy" id="chatCardCloseBtn">✕ 关闭</button>
+          </div>
+          <div class="cpd-sub">点击选中一张卡片后按「发送邀请」，邀请 <span id="chatCardPeerName" style="color:#58a6ff"></span> 加入该卡片（同时成为卡片组成员）；双击卡片可直接发送。仅显示你创建的公开卡片组内未完成的卡片。</div>
+          <div class="cpd-list" id="chatCardList"></div>
+          <div class="cpd-foot">
+            <span class="card-hint" id="chatCardPickHint">未选择卡片</span>
+            <span style="flex:1"></span>
+            <button class="copy" id="chatCardCancelBtn">取消</button>
+            <button class="copy" id="chatCardSendBtn" disabled>发送邀请</button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-picker-mask" id="chatGroupPicker" style="display:none">
+        <div class="chat-picker-dialog">
+          <div class="cpd-head">
+            <span>选择要发送的卡片组</span>
+            <span style="flex:1"></span>
+            <button class="copy" id="chatGroupCloseBtn">✕ 关闭</button>
+          </div>
+          <div class="cpd-sub">点击选中一个卡片组后按「发送邀请」，邀请 <span id="chatGroupPeerName" style="color:#58a6ff"></span> 加入整个卡片组（含组内全部卡片）；双击可直接发送。仅显示你创建的卡片组。</div>
+          <div class="cpd-list" id="chatGroupList"></div>
+          <div class="cpd-foot">
+            <span class="card-hint" id="chatGroupPickHint">未选择卡片组</span>
+            <span style="flex:1"></span>
+            <button class="copy" id="chatGroupCancelBtn">取消</button>
+            <button class="copy" id="chatGroupSendBtn" disabled>发送邀请</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="main">
+  <div id="left">
+    <div class="panel-title">对话流水（发出 -> 服务器回传）</div>
+    <div id="log"><div class="empty">尚未发送任务。先「查询服务器服务」，再选择编号并发送。</div></div>
+  </div>
+  <div id="right">
+    <div class="panel-title">对话记录（服务器保存，最近十条） <button class="copy" id="refreshUsersBtn" style="float:right">刷新</button></div>
+    <div id="users"><div class="empty">暂无对话记录。</div></div>
+  </div>
+</div>
+<div class="reminder-pop" id="remindPop"></div>
+<div class="chat-picker-mask" id="extendPicker" style="display:none">
+  <div class="chat-picker-dialog">
+    <div class="cpd-head">
+      <span>延期 · 调整时间</span>
+      <span style="flex:1"></span>
+      <button class="copy" id="extendCloseBtn">✕ 关闭</button>
+    </div>
+    <div class="cpd-sub">年月日时分可分别调整。你是发起者时点「确定」立即改期；你是被指定完成权限的参与者时，将向发起者发出延期申请（与申请好友同理），由发起者同意或拒绝。<span id="extendCardLabel"></span></div>
+    <div class="cpd-list">
+      <div class="mfield" style="margin-bottom:6px"><label>开始时间（年 / 月 / 日 / 时 / 分）</label></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap">
+        <input id="extYears" type="number" min="1970" max="9999" step="1" style="width:84px" title="年">
+        <span>-</span>
+        <input id="extMonths" type="number" min="1" max="12" step="1" style="width:56px" title="月">
+        <span>-</span>
+        <input id="extDays" type="number" min="1" max="31" step="1" style="width:56px" title="日">
+        <input id="extHours" type="number" min="0" max="23" step="1" style="width:56px" title="时">
+        <span>:</span>
+        <input id="extMinutes" type="number" min="0" max="59" step="1" style="width:56px" title="分">
+      </div>
+      <div class="mfield" style="margin:10px 0 6px">
+        <label style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="extUseEnd" style="width:auto;margin:0"> 设置结束时间（原为时段时默认保留原时长，勾选后单独调整）
+        </label>
+      </div>
+      <div class="row" style="gap:6px;flex-wrap:wrap">
+        <input id="extEndYears" type="number" min="1970" max="9999" step="1" style="width:84px" title="结束年" disabled>
+        <span>-</span>
+        <input id="extEndMonths" type="number" min="1" max="12" step="1" style="width:56px" title="结束月" disabled>
+        <span>-</span>
+        <input id="extEndDays" type="number" min="1" max="31" step="1" style="width:56px" title="结束日" disabled>
+        <input id="extEndHours" type="number" min="0" max="23" step="1" style="width:56px" title="结束时" disabled>
+        <span>:</span>
+        <input id="extEndMinutes" type="number" min="0" max="59" step="1" style="width:56px" title="结束分" disabled>
+      </div>
+      <div class="card-hint" id="extendHint" style="margin-top:8px"></div>
+    </div>
+    <div class="cpd-foot">
+      <span class="card-hint" id="extendRoleHint"></span>
+      <span style="flex:1"></span>
+      <button class="copy" id="extendCancelBtn">取消</button>
+      <button class="primary" id="extendSubmitBtn">确定</button>
+    </div>
+  </div>
+</div>
+<script>
+  const $ = id => document.getElementById(id);
+  const logEl = $('log');
+  let sending = false;
+  let curCard = null;
+  let curPublic = false; // 卡片「公开/私人」：设置卡片时默认「私人」
+  let curFriendOnly = false; // 卡片「仅好友」：默认所有人可见
+  let curCapacity = 1; // 卡片「人数上限」：含发起者本人，默认与最小值 1
+  let curNeedApproval = false; // 卡片「需要申请」：默认关闭，他人可直接加入
+  let curConflicts = []; // 当前工作卡与已有卡片的时间冲突（服务器确定性判定）
+  const CARD_LABELS = [
+    ['purpose', '目的'],
+    ['event', '事件'],
+    ['time', '时间'],
+    ['reminderTime', '提醒时间'],
+    ['repeatTime', '重复时间'],
+    ['repeatUntil', '重复到何时'],
+    ['location', '地点'],
+    ['participant', '参与人'],
+    ['count', '人数'],
+    ['capacity', '人数上限'],
+    ['needApproval', '是否需要申请']
+  ];
+
+  // 「提醒时间」与「时间」同格式：必须是绝对时间（YYYY-MM-DD HH:mm，可带时段），禁止相对说法
+  function isAbsTime(v){
+    return typeof v==='string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(~\d{2}:\d{2}|~\d{4}-\d{2}-\d{2} \d{2}:\d{2})?$/.test(v.trim());
+  }
+
+  function el(tag, cls, text){
+    const n=document.createElement(tag);
+    if(cls)n.className=cls;
+    if(text!==undefined)n.textContent=text;
+    return n;
+  }
+
+  function copyText(t){ if(navigator.clipboard){navigator.clipboard.writeText(t);} }
+
+  function fmt(v){ try{return JSON.stringify(v,null,2);}catch(e){return String(v);} }
+
+  async function raw(url, opts){
+    const r= await fetch(url, opts);
+    const t= await r.text();
+    let j; try{j=JSON.parse(t);}catch{j=null;}
+    return {ok:r.ok,status:r.status,body:j,raw:t};
+  }
+
+  function now(){ return new Date().toLocaleTimeString('zh-CN',{hour12:false}); }
+
+  // 通过路由编号服务调用服务器（AI 控制能力全部走这里，禁止直连服务器端点）
+  // 登录后携带服务端签发的 token；服务端据此判定身份，未登录/失效返回 401（除注册/登录/退出/注销）
+  async function postTask(serviceId, payload){
+    const r = await raw('/api/route/task',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({serviceId:Number(serviceId), token:(auth&&auth.token)?auth.token:null, payload:payload ?? {}})
+    });
+    if(!(r.ok && r.body?.code===0)){
+      if(r.status===401){
+        // 服务器重启或 token 失效：清除本地登录态并提示重新登录
+        if(auth){ auth=null; clearAuth(); updateAuthPanel(); authPanel('登录状态已失效，请重新登录', true); }
+        throw new Error('未登录：请重新登录账号');
+      }
+      throw new Error((r.body?.message) || ('http '+r.status));
+    }
+    return r.body.data;
+  }
+
+  // 每次成功使用服务器后，都用服务器内容覆盖本地该账号的私人卡片备份（备份失败绝不影响主流程）
+  async function callService(serviceId, payload){
+    const data = await postTask(serviceId, payload);
+    try{ await refreshPrivBackup(data); }catch(e){ /* 忽略备份异常 */ }
+    return data;
+  }
+
+  // ---- 私人卡片本地备份（一切以服务器内容为准，本地只留一份备份）----
+  // 按账号分开存放，因此同一个客户端换账号登录不会串号；服务器返回什么就覆盖成什么，不做本地合并。
+  const PRIV_BACKUP_PREFIX='privBackup:';
+  let privBackupBusy=false; // 防止「备份时又触发备份」的递归与并发重复请求
+  // 识别服务器响应里是否直接带了该账号的卡片列表（服务 37 返回 {account, entries}）
+  function entriesOfServiceData(data){
+    const r=(data && typeof data==='object' && 'result' in data) ? data.result : data;
+    if(r && typeof r==='object' && Array.isArray(r.entries)) return r.entries;
+    return null;
+  }
+  function savePrivBackup(acc, entries){
+    if(!acc) return;
+    try{ localStorage.setItem(PRIV_BACKUP_PREFIX+acc, JSON.stringify({account:acc, at:Date.now(), entries:entries||[]})); }catch(e){ /* 忽略 */ }
+  }
+  function loadPrivBackup(acc){
+    if(!acc) return null;
+    try{ const v=localStorage.getItem(PRIV_BACKUP_PREFIX+acc); return v?JSON.parse(v):null; }catch(e){ return null; }
+  }
+  function renderPrivBackupHint(){
+    const box=$('privBackupHint');
+    if(!box) return;
+    const acc=(auth&&auth.account)?auth.account:'';
+    if(!acc){ box.textContent='本地备份：—（未登录）'; return; }
+    const b=loadPrivBackup(acc);
+    box.textContent = b
+      ? `本地备份：${(b.entries||[]).length} 条（${new Date(b.at).toLocaleString('zh-CN',{hour12:false})}）`
+      : '本地备份：（暂无，登录后自动获取）';
+  }
+  // 用服务器当前的该账号私人卡片覆盖本地备份：响应里带了就直接用，否则主动拉一次（编号 37）
+  async function refreshPrivBackup(data){
+    if(!auth||!auth.account) return;
+    const direct=entriesOfServiceData(data);
+    if(direct){ savePrivBackup(auth.account, direct); renderPrivBackupHint(); return; }
+    if(privBackupBusy) return;
+    privBackupBusy=true;
+    try{
+      const fresh=await postTask(37, {userId:currentUserId(), account:auth.account});
+      const entries=entriesOfServiceData(fresh);
+      if(entries) savePrivBackup(auth.account, entries);
+    } finally {
+      privBackupBusy=false;
+      renderPrivBackupHint();
+    }
+  }
+
+  // ---- 客户端/服务器健康状态 ----
+  async function load(){
+    const c=await raw('/api/health');
+    if(c.ok && c.body?.code===0){
+      const d=c.body.data;
+      $('dotC').className='dot on';
+      $('statusC').textContent=`客户端正常 ${d.myAddr} -> 服务器 ${d.server}`;
+    } else {
+      $('dotC').className='dot off';
+      $('statusC').textContent='客户端异常';
+    }
+    await refreshServices();
+    await loadServerChoices();
+    await loadStatus();
+    await refreshUsers();
+    await loadLib();
+    await loadUsers();
+    await loadInbox();
+    await loadCardRequests();
+    await renderReport(); // 先拿到「今天已打卡」状态，卡片行的打卡按钮才能正确置灰
+    renderGroups();
+    renderPostcards();
+    loadExtendRequests();
+    loadNotices();
+  }
+
+  // ---- 刷新连接：手动重新检查「客户端 → 服务器」是否连通，只更新状态灯与服务清单，不重载数据面板 ----
+  let refreshConnBusy = false;
+  async function refreshConnection(){
+    if(refreshConnBusy) return;
+    refreshConnBusy=true;
+    const btn=$('refreshConnBtn');
+    btn.disabled=true;
+    btn.textContent='检查中…';
+    try{
+      const c=await raw('/api/health');
+      if(c.ok && c.body?.code===0){
+        const d=c.body.data;
+        $('dotC').className='dot on';
+        $('statusC').textContent=`客户端正常 ${d.myAddr} -> 服务器 ${d.server}`;
+      }else{
+        $('dotC').className='dot off';
+        $('statusC').textContent='客户端异常';
+      }
+      await refreshServices(); // 服务器连通性由「服务清单」请求判定（dotS / statusS 在此更新）
+      await loadServerChoices(); // 同步「当前服务器」地址显示
+      const connected=$('dotS').className.includes('on');
+      addLogEntry('in','刷新连接', connected ? `已连上服务器：${$('statusS').textContent}` : `未连上服务器：${$('statusS').textContent}`);
+    }catch(e){
+      addLogEntry('in','刷新连接','检查失败：'+String(e.message||e));
+    }finally{
+      btn.disabled=false;
+      btn.textContent='刷新连接';
+      refreshConnBusy=false;
+    }
+  }
+
+  // ---- 服务器选择：默认「服务器」（本机对外可达地址，其他设备据此连到本机服务器）；次选「本地服务器」（127.0.0.1）----
+  async function loadServerChoices(){
+    const sel=$('srvSel');
+    if(!sel) return;
+    try{
+      const r=await raw('/api/routing-ips/suggest');
+      if(!(r.ok && r.body?.code===0)){ $('srvStatus').textContent='候选服务器读取失败'; return; }
+      const d=r.body.data;
+      const cur=`${d.current.ip}:${d.current.port}`;
+      sel.innerHTML='';
+      for(const s of d.suggestions){
+        const o=el('option',null,`${s.label} — ${s.ip}:${s.port}`);
+        o.value=`${s.ip}:${s.port}`;
+        if(o.value===cur) o.selected=true;
+        sel.appendChild(o);
+      }
+      $('srvStatus').textContent=`当前：${cur}｜本机地址 ${d.myIp}:${d.myPort}`;
+    }catch(e){
+      $('srvStatus').textContent='候选服务器读取失败：'+String(e.message||e);
+    }
+  }
+  // 切换服务器：写入服务器 IP 库并立即生效。同一台服务器只是换地址无需重新登录；换成另一台服务器需重新登录
+  async function applyServer(){
+    const custom=$('srvInput').value.trim();
+    const addr = custom!=='' ? custom : ($('srvSel').value||'');
+    if(addr===''){ addLogEntry('in','切换服务器','请选择或填写服务器地址'); return; }
+    const idx=addr.lastIndexOf(':');
+    const ip=(idx===-1?addr:addr.slice(0,idx)).trim();
+    const port=idx===-1?3000:Number(addr.slice(idx+1));
+    if(ip==='' || !Number.isInteger(port) || port<1 || port>65535){
+      addLogEntry('in','切换服务器','地址格式应为 IP:PORT，例如 192.168.1.50:3000');
+      return;
+    }
+    try{
+      const r=await raw('/api/routing-ips/select',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ip,port})
+      });
+      if(!(r.ok && r.body?.code===0)) throw new Error(r.body?.message||('http '+r.status));
+      $('srvInput').value='';
+      addLogEntry('in','切换服务器',`已切换到服务器 ${ip}:${port}（立即生效）。若这是另一台服务器，请重新登录。`);
+      await load();
+    }catch(err){
+      addLogEntry('in','切换服务器',`切换失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function refreshServices(){
+    const r=await raw('/api/route/services');
+    $('dotS').className='dot '+(r.ok?'on':'off');
+    const sel=$('serviceSel');
+    const prev=sel.value;
+    sel.innerHTML='';
+    if(r.ok && r.body?.code===0){
+      const list=r.body.data;
+      $('statusS').textContent=`服务器服务 ${list.length} 个`;
+      for(const s of list){
+        const o=el('option',null,`${s.id} — ${s.name}`);
+        o.value=s.id;
+        sel.appendChild(o);
+      }
+      if(list.length && ![...sel.options].some(o=>o.value==String(prev))) sel.value=list[0].id;
+    } else {
+      $('statusS').textContent=`服务器未连接（${r.status||r.body?.message||''}）`;
+      const o=el('option',null,'0 — ai.ask（默认）'); o.value=0; sel.appendChild(o);
+    }
+  }
+
+  // 编号 4 = ai.status：刷新当前卡片、公开/私人按钮状态、人数上限与参与人
+  async function loadStatus(){
+    try{
+      const d = await callService(4, { userId: currentUserId() });
+      const wc = d.result.workingCard || {};
+      curCard = (wc && wc.card) || null;
+      curPublic = (wc && wc.public) === true; // 默认「私人」
+      curFriendOnly = (wc && wc.friendOnly) === true;
+      curCapacity = Number.isInteger(wc?.card?.capacity) && wc.card.capacity >= 1 ? wc.card.capacity : 1;
+      curNeedApproval = (wc && wc.needApproval) === true;
+      if($('capInput')) $('capInput').value = String(curCapacity);
+      renderCard(curCard);
+      updateVisBtn();
+      updateConfirmBtn();
+      await loadConflicts(); // 时间冲突由服务器确定性判定，有冲突时禁用「确定」
+    } catch(e){
+      // 未登录或服务器不可用时，按钮按默认「私人」显示，避免界面停留在「公开」
+      curPublic=false;
+      curFriendOnly=false;
+      curCapacity=1;
+      curNeedApproval=false;
+      if($('capInput')) $('capInput').value='1';
+      renderCard(curCard);
+      updateVisBtn();
+      updateConfirmBtn();
+    }
+  }
+
+  // 公开/私人、仅好友、需要申请按钮：显示当前状态；仅好友与需要申请只在「公开」卡片上可用
+  function updateVisBtn(){
+    const b=$('visBtn');
+    if(b) b.textContent = curPublic ? '公开' : '私人';
+    const f=$('foBtn');
+    if(f){
+      f.textContent = curFriendOnly ? '仅好友' : '所有人';
+      f.disabled = !curPublic;
+      f.title = curPublic ? '点击切换「仅好友 / 所有人」' : '私人卡片只进私人卡片组库，无需设置仅好友';
+    }
+    const n=$('naBtn');
+    if(n){
+      n.textContent = curNeedApproval ? '需要申请' : '直接加入';
+      n.disabled = !curPublic;
+      n.title = curPublic ? '点击切换「需要申请 / 直接加入」' : '私人卡片只进私人卡片组库，无需设置需要申请';
+    }
+  }
+  // 编号 20 = ai.visibility：确定卡片前切换公开/私人。
+  // 公开/私人与人数上限强绑定（公开 → 上限至少 2；私人 → 上限 1 且清空参与人），
+  // 因此切换后统一从服务器重新拉取工作卡状态，保证按钮、上限输入框、参与人三者一致
+  async function toggleVis(){
+    if(sending) return;
+    if(!auth){ $('hint2').textContent='请先注册并登录账号，服务器才提供服务'; return; }
+    const nextIsPublic = !curPublic;
+    try{
+      await callService(20, { public: nextIsPublic, userId: currentUserId() });
+      addLogEntry('in','卡片公开/私人', nextIsPublic
+        ? '已切换为「公开」：人数上限已自动增至 2，确定后自动建组写入公开卡片组库'
+        : '已切换为「私人」：人数上限已还原为 1，参与人已清空，确定后自动创建私人卡片组（仅本人可见）');
+      await loadStatus();
+    } catch(err){
+      addLogEntry('in','卡片公开/私人',`切换失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 编号 22 = ai.friend-only：确定卡片前切换「仅好友」（只在「公开」卡片上生效）
+  async function toggleFriendOnly(){
+    if(sending) return;
+    if(!auth){ $('hint2').textContent='请先注册并登录账号，服务器才提供服务'; return; }
+    if(!curPublic){ addLogEntry('in','卡片仅好友','私人卡片只进私人卡片组库，无需设置仅好友'); return; }
+    try{
+      const data = await callService(22, { friendOnly: !curFriendOnly, userId: currentUserId() });
+      const r = data.result || data;
+      const wc = (r && r.workingCard) || null;
+      curFriendOnly = wc ? (wc.friendOnly === true) : !curFriendOnly;
+      updateVisBtn();
+      addLogEntry('in','卡片仅好友', curFriendOnly
+        ? '已设为「仅好友」：确定后只有与发起者为好友关系的账号能在公开卡片组库看到这张卡片'
+        : '已设为「所有人」：确定后所有账号都能在公开卡片组库看到这张卡片');
+    } catch(err){
+      addLogEntry('in','卡片仅好友',`切换失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 编号 29 = ai.need-approval：确定卡片前切换「需要申请」（只在「公开」卡片上生效）
+  async function toggleNeedApproval(){
+    if(sending) return;
+    if(!auth){ $('hint2').textContent='请先注册并登录账号，服务器才提供服务'; return; }
+    if(!curPublic){ addLogEntry('in','卡片需要申请','私人卡片只进私人卡片组库，无需设置需要申请'); return; }
+    try{
+      const data = await callService(29, { needApproval: !curNeedApproval, userId: currentUserId() });
+      const r = data.result || data;
+      const wc = (r && r.workingCard) || null;
+      curNeedApproval = wc ? (wc.needApproval === true) : !curNeedApproval;
+      if(curCard) curCard.needApproval = curNeedApproval ? true : null;
+      renderCard(curCard);
+      updateVisBtn();
+      addLogEntry('in','卡片需要申请', curNeedApproval
+        ? '已设为「需要申请」：确定后他人点「+」会先向你发送加入申请，你同意后对方才加入这张卡片'
+        : '已设为「直接加入」：确定后他人点「+」可直接加入这张卡片');
+    } catch(err){
+      addLogEntry('in','卡片需要申请',`切换失败：${String(err.message||err)}`);
+    }
+  }
+
+  function updateConfirmBtn(){
+    const card = curCard || {};
+    const filled = !!(card.event && card.time);
+    // 「提醒时间」必须由 AI 推荐写入且格式与「时间」一致（绝对时间），否则不允许「确定」（服务端也会拒绝）
+    const hasReminder = isAbsTime(card.reminderTime);
+    // 与已有卡片时间冲突时不允许「确定」（服务端也会兜底拒绝）
+    const canConfirm = filled && hasReminder && curConflicts.length === 0;
+    const b=$('doneBtn');
+    b.disabled = !canConfirm;
+    b.title = curConflicts.length > 0
+      ? '与已有卡片时间冲突，请先调整时间'
+      : (!hasReminder ? '缺少「提醒时间」或格式不符（应为绝对时间 YYYY-MM-DD HH:mm）：可在「手动制作」里填写，或让 AI 推荐' : '');
+  }
+
+  // 编号 24 = ai.capacity：确定卡片前用输入框设置「人数上限」（含发起者本人，最小 1）。
+  // 上限与公开/私人强绑定（> 1 → 公开；= 1 → 私人且清空参与人），因此设置后统一从服务器重新拉取状态
+  // silent=true 时用于「确定」前的自动同步，不写流水
+  async function syncCapacity(silent){
+    if(!auth){ if(!silent) $('hint2').textContent='请先注册并登录账号，服务器才提供服务'; return false; }
+    const raw = Number($('capInput').value);
+    const next = (Number.isInteger(raw) && raw >= 1) ? raw : 1;
+    if(next === curCapacity){
+      $('capInput').value = String(curCapacity);
+      return true;
+    }
+    try{
+      await callService(24, { capacity: next, userId: currentUserId() });
+      if(!silent) addLogEntry('in','卡片人数上限', next > 1
+        ? `已把人数上限设为 ${next}（含发起者本人），卡片已自动切为「公开」`
+        : '已把人数上限设为 1，卡片已自动切为「私人」，参与人已清空');
+      await loadStatus();
+      return true;
+    } catch(err){
+      $('capInput').value = String(curCapacity);
+      if(!silent) addLogEntry('in','卡片人数上限',`设置失败：${String(err.message||err)}`);
+      return false;
+    }
+  }
+
+  // ---- 手动制作卡片：编号 51 = cards.edit ----
+  // 直接把表单里的文本字段写入服务器工作卡（fields 中出现即写入：空=清空，未提及=保持不变），
+  // 写入后仍用「确定」（编号 7）落库；与 AI 对话可混用：先手动打底再让 AI 完善，或反之
+  const MANUAL_FIELDS = [
+    ['mfPurpose','purpose'],
+    ['mfEvent','event'],
+    ['mfLocation','location'],
+    ['mfTime','time'],
+    ['mfReminder','reminderTime'],
+    ['mfRepeat','repeatTime'],
+    ['mfRepeatUntil','repeatUntil']
+  ];
+
+  // 打开面板时用当前工作卡内容预填表单，避免「留空=清空」误删已有内容
+  function prefillManualForm(){
+    const card = curCard || {};
+    for(const [id,key] of MANUAL_FIELDS){
+      const node=$(id);
+      if(node) node.value = (card[key]===null||card[key]===undefined) ? '' : String(card[key]);
+    }
+    const h=$('manualHint'); if(h) h.textContent='';
+  }
+
+  function toggleManualCard(){
+    const bar=$('manualBar');
+    const show = bar.style.display==='none';
+    bar.style.display = show ? 'block' : 'none';
+    if(show) prefillManualForm();
+  }
+
+  async function applyManualCard(){
+    if(sending) return;
+    if(!auth){ $('manualHint').textContent='请先注册并登录账号，服务器才提供服务'; return; }
+    const fields={};
+    let allEmpty=true;
+    for(const [id,key] of MANUAL_FIELDS){
+      const node=$(id);
+      fields[key] = node ? String(node.value||'').trim() : '';
+      if(fields[key]!=='') allEmpty=false;
+    }
+    // 「时间」「提醒时间」非空时必须是绝对时间（与服务器校验一致），相对说法（如「明天」）不允许
+    if(fields.time!=='' && !isAbsTime(fields.time)){
+      $('manualHint').textContent='「时间」格式应为 YYYY-MM-DD HH:mm（可带 ~ 时段），如 2026-10-02 10:00';
+      return;
+    }
+    if(fields.reminderTime!=='' && !isAbsTime(fields.reminderTime)){
+      $('manualHint').textContent='「提醒时间」格式应为 YYYY-MM-DD HH:mm（可带 ~ 时段），与「时间」一致';
+      return;
+    }
+    if(allEmpty && !confirm('所有字段都是空的：这会清空当前卡片的全部内容，继续吗？')) return;
+    sending=true;
+    const applyBtn=$('manualApplyBtn');
+    applyBtn.disabled=true; applyBtn.textContent='写入中…';
+    try{
+      const data = await callService(51, { fields, userId: currentUserId() });
+      const r = data.result||data;
+      $('manualHint').textContent='';
+      addLogEntry('in','手动制作卡片',(r&&r.message)||'已写入当前卡片');
+      await loadStatus(); // 刷新当前卡片显示与「确定」按钮（含时间冲突检查）
+      prefillManualForm(); // 用服务器返回的工作卡回填，保证表单与服务器一致
+    } catch(err){
+      $('manualHint').textContent='写入失败：'+String(err.message||err);
+      addLogEntry('in','手动制作卡片',`写入失败：${String(err.message||err)}`);
+    } finally {
+      sending=false;
+      applyBtn.disabled=false; applyBtn.textContent='写入当前卡片';
+    }
+  }
+
+  // 字段值转显示文本（布尔型字段用中文描述）
+  function cardFieldText(key, card){
+    const raw = card ? card[key] : null;
+    if(raw === null || raw === undefined) return '';
+    if(key === 'needApproval') return raw === true ? '需要申请' : '';
+    return String(raw);
+  }
+
+  function renderCard(card){
+    const box=$('cardFields');
+    box.textContent='';
+    for(const [key,label] of CARD_LABELS){
+      const val = cardFieldText(key, card);
+      const cell=el('div','cfield'+(val?'':' empty'));
+      cell.appendChild(el('span','cflabel',label));
+      cell.appendChild(el('span','cfval',val||'（空）'));
+      box.appendChild(cell);
+    }
+    renderWorkingParticipants();
+    updateInviteBtn();
+  }
+
+  // 当前卡片的参与人：确定卡片前可逐个删除（编号 32）
+  function renderWorkingParticipants(){
+    const box=$('cardPartBox');
+    if(!box) return;
+    box.textContent='';
+    const list=participantsOf(curCard?curCard.participant:null);
+    if(!list.length){ box.appendChild(el('div','empty','（暂无参与人）')); return; }
+    for(const p of list){
+      const line=el('div','uhead');
+      line.appendChild(el('span',null,p));
+      const spacer=el('span'); spacer.style.flex='1'; line.appendChild(spacer);
+      const rm=el('button','copy','删除');
+      rm.title=`把 ${p} 从当前卡片的参与人中删除`;
+      rm.onclick=()=>uninviteFriend(p);
+      line.appendChild(rm);
+      box.appendChild(line);
+    }
+  }
+
+  // 编号 32 = cards.uninvite：确定卡片前把参与人移出
+  async function uninviteFriend(account){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','删除参与人','请先登录账号'); return; }
+    try{
+      const data = await callService(32, {userId:currentUserId(), account:auth.account, toAccount:account});
+      const r=data.result||data;
+      addLogEntry('in','删除参与人',(r&&r.message)||`已把 ${account} 从参与人中移除`);
+      await loadStatus();
+    }catch(err){
+      addLogEntry('in','删除参与人',`删除失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 时间冲突展示（编号 33 = cards.conflicts）：有冲突时禁用「确定」
+  // 冲突由服务器依据「可见的组内卡片」确定性算出（本人相关的组 + 公开卡片组库 + 参与人的组），客户端不做判断
+  function renderConflicts(){
+    const box=$('conflictBox');
+    if(!box) return;
+    box.textContent='';
+    if(!curConflicts.length){ box.appendChild(el('div','empty','（无冲突）')); return; }
+    for(const d of curConflicts) box.appendChild(el('div','hint',d));
+  }
+
+  async function loadConflicts(){
+    if(!auth){ curConflicts=[]; renderConflicts(); updateConfirmBtn(); return; }
+    try{
+      const data = await callService(33, {userId:currentUserId(), account:auth.account});
+      const r = data.result||data;
+      curConflicts = (r && Array.isArray(r.descriptions)) ? r.descriptions : [];
+    }catch(e){ curConflicts=[]; }
+    renderConflicts();
+    updateConfirmBtn();
+  }
+
+  // 邀请按钮状态：登录后即可用（空卡也可先邀请好友，再与 AI 对话完善卡片）
+  function updateInviteBtn(){
+    const b=$('inviteBtn');
+    if(!b) return;
+    b.disabled=!auth;
+    b.title = auth
+      ? '邀请好友加入当前卡片（仅限已是好友的账号，邀请后写入参与人）'
+      : '请先登录账号';
+  }
+
+  // 编号 31 = cards.invite：邀请好友加入「正在设置的卡片」（仅限好友）
+  async function inviteFriend(){
+    if(sending) return;
+    if(!auth){ $('hint2').textContent='请先注册并登录账号，服务器才提供服务'; return; }
+    const to=$('inviteInput').value.trim();
+    if(!to){ addLogEntry('in','邀请好友','请先填写要邀请的好友账号'); return; }
+    try{
+      const data = await callService(31, {userId:currentUserId(), account:auth.account, toAccount:to});
+      const r = data.result||data;
+      addLogEntry('in','邀请好友',(r&&r.message)||`已邀请 ${to} 加入当前卡片`);
+      $('inviteInput').value='';
+      await loadStatus();
+    } catch(err){
+      addLogEntry('in','邀请好友',`邀请失败：${String(err.message||err)}`);
+    }
+  }
+
+  function addLogEntry(dir, metaText, content){
+    const firstEmpty=logEl.querySelector('.empty');
+    if(firstEmpty) firstEmpty.remove();
+    const entry=el('div','entry');
+    const head=el('div','entry-head');
+    head.appendChild(el('span','tag '+(dir==='out'?'out':'in'), dir==='out'?'发出→':'←回传'));
+    head.appendChild(el('span',null,metaText));
+    const copyBtn=el('button','copy','复制');
+    copyBtn.onclick=()=>{copyText(fmt(content));};
+    const spacer=el('span'); spacer.style.flex='1';
+    head.appendChild(spacer);
+    head.appendChild(copyBtn);
+    entry.appendChild(head);
+    const pre=el('pre'); pre.textContent=fmt(content); entry.appendChild(pre);
+    logEl.appendChild(entry);
+    logEl.scrollTop=logEl.scrollHeight;
+    return entry;
+  }
+
+  // 对话记录：编号 39 = conversations.list（服务器长期保存，每个账号只保留最近十条）
+  async function refreshUsers(){
+    const box=$('users');
+    box.innerHTML='';
+    if(!auth){ box.appendChild(el('div','empty','请先登录账号')); return; }
+    try{
+      const d = await callService(39, { userId: currentUserId() });
+      const r = d.result||d;
+      const list = (r && Array.isArray(r.messages)) ? r.messages : [];
+      if(!list.length){ box.appendChild(el('div','empty','暂无对话记录。')); return; }
+      for(const rec of list){
+        const u=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span','udir '+rec.direction, rec.direction==='in'?'玩家':'AI'));
+        head.appendChild(el('span',null,`#${rec.id}`));
+        head.appendChild(el('span',null,new Date(rec.time).toLocaleString('zh-CN',{hour12:false})));
+        u.appendChild(head);
+        const c=el('div','ucontent');
+        c.textContent=typeof rec.content==='string'?rec.content:fmt(rec.content);
+        u.appendChild(c);
+        box.appendChild(u);
+      }
+    }catch(e){
+      box.appendChild(el('div','empty','对话记录读取失败：'+String(e.message||e)));
+    }
+  }
+
+  // 公开卡片组库：编号 3 = cards.list（返回 {groups}，每组含组内卡片）
+  // 组内「仅好友」卡片由服务器过滤（只对组创建者的好友可见）；applied 标记我已提交加入申请的卡片
+  async function loadLib(){
+    try{
+      const data = await callService(3, { userId: currentUserId(), account: auth?auth.account:null });
+      const r = data.result || data;
+      const groups = (r && Array.isArray(r.groups)) ? r.groups : [];
+      const box=$('libBox');
+      box.textContent='';
+      if(!groups.length){ box.appendChild(el('div','empty','（空）')); await renderPrivateLib(); return; }
+      for(const g of groups){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`#${g.id} ${g.name}`));
+        head.appendChild(el('span',null,`创建者 ${g.owner}`));
+        head.appendChild(el('span',null,`成员 ${g.memberCount} 人`));
+        head.appendChild(el('span',null,`卡片 ${g.cardCount} 张`));
+        line.appendChild(head);
+        const cards=Array.isArray(g.cards)?g.cards:[];
+        if(!cards.length){ line.appendChild(el('div','empty','（组内还没有卡片）')); }
+        for(const card of cards){
+          const c=card.content||{};
+          const prow=el('div','uhead');
+          if(card.completedAt) prow.style.opacity='0.55';
+          prow.appendChild(el('span',null,`#${card.index} ${c.purpose||'-'} / ${c.event||'-'} / ${c.time||'-'}`));
+          prow.appendChild(el('span',null,`人数 ${c.count ?? 1}/${c.capacity ?? 1}`));
+          if(c.friendOnly===true) prow.appendChild(el('span',null,'仅好友'));
+          if(c.needApproval===true) prow.appendChild(el('span',null,'需要申请'));
+          if(card.completedAt) prow.appendChild(el('span',null,`已完成（${card.completedBy||'?'}）`));
+          const spacer=el('span'); spacer.style.flex='1'; prow.appendChild(spacer);
+          if(auth && !card.completedAt){
+            if(g.owner===auth.account){
+              const delBtn=el('button','copy','删除');
+              delBtn.title='真删该卡片（创建者权限），此操作不可恢复';
+              delBtn.onclick=()=>deleteCard(g, card.index);
+              prow.appendChild(delBtn);
+            } else if(!inParticipants(c.participant, auth.account)){
+              // 「已申请」＞「已满」＞「+」：已提交申请时不再重复申请；人数达上限时不可加入
+              const full = (c.count ?? 1) >= (c.capacity ?? 1);
+              const label = card.applied ? '已申请' : (full ? '已满' : '+');
+              const joinBtn=el('button','copy', label);
+              joinBtn.disabled = !!card.applied || full;
+              joinBtn.title = card.applied ? '已发送加入申请，等待创建者处理'
+                : (full ? `人数已达上限（${c.capacity ?? 1} 人），无法加入`
+                  : (c.needApproval===true ? '该卡片需要创建者同意，点击发送加入申请' : '加入该卡片（同时成为卡片组成员）'));
+              if(!card.applied && !full) joinBtn.onclick=()=>joinCard(g, card, c.needApproval===true);
+              prow.appendChild(joinBtn);
+            } else {
+              const leaveBtn=el('button','copy','退出卡片');
+              leaveBtn.title='退出该卡片的参与人（组身份保留，仍可见全组）';
+              leaveBtn.onclick=()=>leaveCard(g, card.index);
+              prow.appendChild(leaveBtn);
+            }
+          }
+          line.appendChild(prow);
+          // 参与者行：创建者可为每个参与者点「删除」直接移除（无需申请）
+          const plist = participantsOf(c.participant);
+          if(plist.length){
+            const prRow=el('div','uhead');
+            prRow.appendChild(el('span',null,`参与者（${plist.length}）：`));
+            for(const p of plist){
+              prRow.appendChild(el('span',null,p));
+              if(auth && g.owner===auth.account){
+                const rmBtn=el('button','copy','删除');
+                rmBtn.title=`把 ${p} 从该卡片中删除（无需申请）`;
+                rmBtn.onclick=()=>removeParticipantFromCard(g, card.index, p);
+                prRow.appendChild(rmBtn);
+              }
+            }
+            line.appendChild(prRow);
+          }
+        }
+        box.appendChild(line);
+      }
+    } catch(e){ /* 静默 */ }
+    await renderPrivateLib(); // 卡片库变化后同步刷新私人卡片组库
+  }
+
+  // 创建者真删组内卡片（编号 9）：仅卡片组创建者可操作，删除后不可恢复
+  async function deleteCard(g, cardIndex){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','删除卡片','请先登录账号'); return; }
+    if(!confirm(`删除卡片组「${g.name}」的卡片 #${cardIndex} 吗？此操作不可恢复。`)) return;
+    try{
+      const data = await callService(9, {groupId:g.id, cardIndex, account:auth.account, userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','删除卡片',(r&&r.message)||`已删除卡片 #${cardIndex}`);
+      await loadLib();
+      await renderGroups();
+    } catch(err){
+      addLogEntry('in','删除卡片',`删除失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 退出组内单卡（编号 15）：从该卡片参与人中移除自己，组身份保留
+  async function leaveCard(g, cardIndex){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','退出卡片','请先登录账号'); return; }
+    if(!confirm(`退出卡片组「${g.name}」的卡片 #${cardIndex} 吗？你将从该卡片参与人中移除（组身份保留，仍可见全组）。`)) return;
+    try{
+      const data = await callService(15, {groupId:g.id, cardIndex, account:auth.account, userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','退出卡片',(r&&r.message)||'已退出该卡片');
+      await loadLib();
+      await renderGroups();
+      loadUpcomingReminders();
+    } catch(err){
+      addLogEntry('in','退出卡片',`退出失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 创建者删除参与者（编号 30）：无需申请，直接把该账号从参与人字段删去
+  async function removeParticipantFromCard(g, cardIndex, targetAccount){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','删除参与者','请先登录账号'); return; }
+    if(!confirm(`确定把 ${targetAccount} 从卡片组「${g.name}」卡片 #${cardIndex} 的参与者中删除吗？`)) return;
+    try{
+      const data = await callService(30, {groupId:g.id, cardIndex, account:auth.account, toAccount:targetAccount, userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','删除参与者',(r&&r.message)||`已把 ${targetAccount} 从卡片 #${cardIndex} 中删除`);
+      await loadLib();
+      await renderGroups();
+    }catch(err){
+      addLogEntry('in','删除参与者',`删除失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 参与人字段（、/,分隔）是否包含当前账号
+  function inParticipants(str, account){
+    if(typeof str!=='string'||!str.trim()) return false;
+    return str.split(/[、,，]/).map(s=>s.trim()).filter(Boolean).includes(account);
+  }
+  // 参与人字段解析为账号数组
+  function participantsOf(str){
+    if(typeof str!=='string'||!str.trim()) return [];
+    return str.split(/[、,，]/).map(s=>s.trim()).filter(Boolean);
+  }
+  // 加入组内卡片：编号 14 = cards.join（不需申请，直接写入参与人并成为组成员）；
+  // 编号 25 = cards.apply（需要申请，先向创建者发出申请，同意后才写入参与人）
+  async function joinCard(g, card, needApproval){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','加入卡片','请先登录账号'); return; }
+    const where=`卡片组「${g.name}」的卡片 #${card.index}`;
+    const ask = needApproval
+      ? `该卡片需要创建者同意。向创建者发送加入申请吗？同意后你将成为该卡片参与者与卡片组成员。`
+      : `加入${where}吗？你将成为该卡片参与者，并同时成为卡片组成员（可见全组、按提醒时间收提醒）。`;
+    if(!confirm(ask)) return;
+    try{
+      if(needApproval){
+        const data = await callService(25, {groupId:g.id, cardIndex:card.index, account:auth.account, userId:currentUserId()});
+        const r = data.result || null;
+        addLogEntry('in','卡片加入申请',(r&&r.message)||`已向创建者发送加入${where}的申请`);
+      } else {
+        await callService(14, {groupId:g.id, cardIndex:card.index, account:auth.account, userId:currentUserId()});
+        addLogEntry('in','加入卡片',`已加入${where}，你已成为参与者与组成员`);
+      }
+      await loadLib();
+      await renderGroups();
+      await loadCardRequests();
+      loadUpcomingReminders();
+    } catch(err){
+      addLogEntry('in','加入卡片',`加入失败：${String(err.message||err)}`);
+    }
+  }
+  // 私人卡片组库删除整组：编号 38 = cards.private-delete（仅本人创建的私人组）
+  async function deletePrivateGroupEntry(entry){
+    if(!auth || !entry) return;
+    if(!confirm(`从私人卡片组库删除卡片组「${entry.name}」吗？组内 ${entry.cardCount ?? 0} 张卡片将一并删除，此操作不可恢复。`)) return;
+    try{
+      const data = await callService(38, {groupId:entry.id, account:auth.account, userId:currentUserId()});
+      const r = data.result||data;
+      addLogEntry('in','删除私人卡片组',(r&&r.message)||'已删除');
+      await renderPrivateLib();
+      await renderGroups();
+      loadUpcomingReminders();
+    } catch(err){
+      addLogEntry('in','删除私人卡片组',`删除失败：${String(err.message||err)}`);
+    }
+  }
+  // 私人卡片组转公开：编号 50 = cards.publish
+  // 把本人私人卡片组库中的一组转入公开卡片组库（组内卡片人数上限自动至少 2）；
+  // 转为公开后即可在好友聊天里发送该组或组内单卡给对方
+  async function publishPrivateGroup(entry){
+    if(!auth || !entry) return;
+    if(!confirm(`把私人卡片组「${entry.name}」转为公开卡片组吗？\n`+
+      '整组将进入公开卡片组库（组内卡片人数上限自动至少为 2），之后即可在聊天中发送给好友。')) return;
+    try{
+      const data = await callService(50, {groupId:entry.id, account:auth.account, userId:currentUserId()});
+      const r = data.result||data;
+      addLogEntry('in','私人卡片组转公开',(r&&r.message)||'已转为公开卡片组');
+      await renderPrivateLib(); // 转换后刷新私人卡片组库（原条目消失）
+      await loadLib();          // 以及公开卡片组库
+      await renderGroups();     // 我的卡片组中的库标记同步更新
+    } catch(err){
+      addLogEntry('in','私人卡片组转公开',`转换失败：${String(err.message||err)}`);
+    }
+  }
+  // 公开卡片组转私人：编号 52 = cards.unpublish（在我的卡片组面板触发）
+  // 仅创建者可操作：整组转为仅本人可见（成员与各卡参与人清空并在收件箱收到通知），未处理申请一并清除
+  async function unpublishPublicGroup(g){
+    if(!auth || !g) return;
+    const others=(g.members||[]).filter(m=>m!==auth.account);
+    if(!confirm(`把公开卡片组「${g.name}」转为私人卡片组吗？\n`+
+      '它将从公开卡片组库移除，转为只有你可见。'+
+      (others.length ? `\n组内 ${others.length} 名成员（${others.join('、')}）将在收件箱收到通知，并从该组移出。` : ''))) return;
+    try{
+      const data = await callService(52, {groupId:g.id, account:auth.account, userId:currentUserId()});
+      const r = data.result||data;
+      addLogEntry('in','公开卡片组转私人',(r&&r.message)||'已转为私人卡片组');
+      await renderGroups();
+      await loadLib();
+      renderPrivateLib();       // 转私后进入私人卡片组库
+      loadCardRequests();       // 该组未处理的加入申请已被服务器清除
+      loadUpcomingReminders();
+    } catch(err){
+      addLogEntry('in','公开卡片组转私人',`转换失败：${String(err.message||err)}`);
+    }
+  }
+  // 私人卡片组库：编号 37 = cards.private-list（本人创建、library='private' 的卡片组，含组内全部卡片）
+  async function renderPrivateLib(){
+    const box=$('privBox'); box.textContent='';
+    const acc=(auth && auth.account)?auth.account:'';
+    $('privAccount').textContent=acc||'未登录';
+    if(!acc){ box.appendChild(el('div','empty','请先登录账号；「确定」私人卡片时会自动创建私人卡片组存入这里')); return; }
+    let entries=[];
+    try{
+      const data = await callService(37, { userId: currentUserId(), account: acc });
+      const r = data.result||data;
+      entries = (r && Array.isArray(r.entries)) ? r.entries : [];
+    }catch(e){
+      box.appendChild(el('div','empty','私人卡片组库读取失败：'+String(e.message||e)));
+      return;
+    }
+    if(!entries.length){ box.appendChild(el('div','empty','（空）')); return; }
+    const groups=[...entries].reverse(); // 最新在前
+    for(const entry of groups){
+      const line=el('div','uentry');
+      const head=el('div','uhead');
+      head.appendChild(el('span',null,`#${entry.id} ${entry.name}`));
+      head.appendChild(el('span',null,`卡片 ${entry.cardCount ?? 0} 张`));
+      if(entry.updatedAt) head.appendChild(el('span',null,new Date(entry.updatedAt).toLocaleString('zh-CN',{hour12:false})));
+      const spacer=el('span'); spacer.style.flex='1';
+      head.appendChild(spacer);
+      // 私人卡片组可整组转公开：转入公开卡片组库后才能在聊天里发送给好友
+      const pubBtn=el('button','copy','转公开');
+      pubBtn.title='把整个私人卡片组转入公开卡片组库（组内卡片人数上限自动至少 2），之后即可在聊天中发送给好友';
+      pubBtn.onclick=()=>publishPrivateGroup(entry);
+      head.appendChild(pubBtn);
+      const delBtn=el('button','copy','删除');
+      delBtn.title='删除整个私人卡片组（组内卡片一并删除，不可恢复）';
+      delBtn.onclick=()=>deletePrivateGroupEntry(entry);
+      head.appendChild(delBtn);
+      line.appendChild(head);
+      // 组内卡片列表（只读展示；编辑请到「我的卡片组」面板）
+      const cards=Array.isArray(entry.cards)?entry.cards:[];
+      if(!cards.length){ line.appendChild(el('div','empty','（组内还没有卡片）')); }
+      for(const card of cards){
+        const c=card.content||{};
+        const prow=el('div','uhead');
+        if(card.completedAt) prow.style.opacity='0.55';
+        prow.appendChild(el('span',null,`#${card.index} ${c.purpose||'-'} / ${c.event||'-'} / ${c.time||'-'}`));
+        prow.appendChild(el('span',null,`人数 ${c.count ?? 1}/${c.capacity ?? 1}`));
+        if(card.completedAt) prow.appendChild(el('span',null,`已完成（${card.completedBy||'?'}）`));
+        line.appendChild(prow);
+      }
+      box.appendChild(line);
+    }
+  }
+
+  // 明信片：只存客户端本地文本文件（data/postcards.txt），经客户端端点 /api/postcards 按登录账号读取
+  async function renderPostcards(){
+    const box=$('postBox');
+    if(!box) return;
+    box.textContent='';
+    if(!auth || !auth.token){ box.appendChild(el('div','empty','请先登录账号')); return; }
+    let list=[];
+    try{
+      const r=await raw('/api/postcards?token='+encodeURIComponent(auth.token));
+      if(!(r.ok && r.body?.code===0)) throw new Error((r.body&&r.body.message)||('http '+r.status));
+      list=(r.body.data && Array.isArray(r.body.data.postcards))?r.body.data.postcards:[];
+    }catch(e){
+      box.appendChild(el('div','empty','明信片读取失败：'+String(e.message||e)));
+      return;
+    }
+    if(!list.length){ box.appendChild(el('div','empty','（空）把卡片标记「完成」后会自动生成明信片')); return; }
+    for(const p of list){
+      const line=el('div','uentry');
+      const head=el('div','uhead');
+      head.appendChild(el('span',null,`#${p.id} ${p.groupName||'未命名组'}${p.cardIndex!=null?(' · 卡片 #'+p.cardIndex):''}`));
+      if(p.createdAt) head.appendChild(el('span',null,new Date(p.createdAt).toLocaleString('zh-CN',{hour12:false})));
+      // 删除这张明信片（只删客户端本地文本文件里的记录，仅限本人）
+      const delBtn=el('button','copy','删除');
+      delBtn.title='删除这张明信片（只删客户端本地 data/postcards.txt 里的记录）';
+      delBtn.onclick=()=>removePostcardUi(p.id);
+      head.appendChild(delBtn);
+      line.appendChild(head);
+      const text=el('div','uhead'); text.style.whiteSpace='pre-wrap';
+      text.appendChild(el('span',null,p.text||''));
+      line.appendChild(text);
+      const meta=el('div','uhead');
+      meta.appendChild(el('span',null,`事件：${p.event||'-'} · 时间：${p.time||'-'}`));
+      if(p.model) meta.appendChild(el('span',null,p.model));
+      line.appendChild(meta);
+      box.appendChild(line);
+    }
+  }
+
+  // 删除一张明信片：调客户端端点 DELETE /api/postcards/:id（只删本地文本文件记录，仅限本人）
+  async function removePostcardUi(id){
+    if(!auth || !auth.token) return;
+    try{
+      const r=await raw('/api/postcards/'+encodeURIComponent(id)+'?token='+encodeURIComponent(auth.token),{method:'DELETE'});
+      if(!(r.ok && r.body?.code===0)) throw new Error((r.body&&r.body.message)||('http '+r.status));
+      addLogEntry('in','明信片',(r.body.data&&r.body.data.message)||`已删除明信片 #${id}`);
+      await renderPostcards();
+    }catch(e){
+      addLogEntry('in','明信片','删除失败：'+String(e.message||e));
+    }
+  }
+
+  // ---- 周报：编号 74 reports.week（客户端本地应答）/ 75 cards.checkin ----
+  // 「卡片数」由服务器按 conflictService 展开计算（只算不存）；打卡/完成/延时在客户端本地累加。
+  // 周报库长期存客户端 data/reports.txt：今周 + 上一周 + 注册以来累计（卡片数 / 打卡数 / 完成数 / 延时数 / 完成率）。
+  let weekReportCache = null; // 最近一次周报，用于判断「今天是否已给这张卡片打个卡」
+
+  // 完成率（并集 + 只算已到期）：分母是「已到期卡片并集」与「完成数」的较大者，无到期卡片时显示「—」
+  function rateText(w){
+    const r=(w&&Number.isFinite(w.rate))?w.rate:null;
+    return `完成率 ${r===null?'—':Math.round(r*100)+'%'}`;
+  }
+
+  function reportRow(label, w){
+    const line=el('div','uhead');
+    line.appendChild(el('span',null,label));
+    line.appendChild(el('span',null,`卡片 ${w.setCount}`));
+    line.appendChild(el('span',null,`打卡 ${w.checkinCount}`));
+    line.appendChild(el('span',null,`完成 ${w.doneCount}`));
+    line.appendChild(el('span',null,`延时 ${w.extendCount}`));
+    line.appendChild(el('span',null,rateText(w)));
+    return line;
+  }
+
+  async function renderReport(){
+    const box=$('reportBox');
+    if(!box) return;
+    box.textContent='';
+    if(!auth || !auth.token){ weekReportCache=null; $('reportMeta').textContent=''; box.appendChild(el('div','empty','请先登录账号')); return; }
+    let rep=null;
+    try{
+      const d=await postTask(74,{account:auth.account, userId:currentUserId()});
+      rep=d.result||d;
+    }catch(e){
+      box.appendChild(el('div','empty','周报读取失败：'+String(e.message||e)));
+      return;
+    }
+    weekReportCache=rep;
+    $('reportMeta').textContent=(rep&&Number.isFinite(rep.seenCardCount))?`累计去重卡片 ${rep.seenCardCount} 张`:'';
+    if(!rep){ box.appendChild(el('div','empty','（暂无周报数据）')); return; }
+    const weeks=Array.isArray(rep.weeks)?rep.weeks:[];
+    if(!weeks.length){ box.appendChild(el('div','empty','（暂无周报数据）')); return; }
+    for(const w of weeks){
+      box.appendChild(reportRow(`${w.current?'今周':'上周'}（周一起 ${w.key}）`, w));
+    }
+    if(rep.totals) box.appendChild(reportRow('累计（注册以来）', rep.totals));
+  }
+
+  // 打卡（编号 75）：只计数，同一天同一张卡片只能打一次；客户端本地累加到周报库
+  async function checkinCard(g, cardIndex){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','打卡','请先登录账号'); return; }
+    try{
+      const d=await postTask(75,{account:auth.account, userId:currentUserId(), groupId:g.id, cardIndex});
+      const r=d.result||d;
+      addLogEntry('in','打卡',(r&&r.message)||'打卡成功');
+      await renderReport();
+      renderGroups();
+    }catch(err){
+      addLogEntry('in','打卡',`打卡失败：${String(err.message||err)}`);
+    }
+  }
+
+  // ---- 卡片组：编号 53 groups.create / 54 groups.list / 55 groups.delete / 56 groups.add-card / 57 groups.remove-card / 58 groups.leave ----
+  // 卡片组 = 一件大事件（用户自己命名），组内卡片 = 大事件拆出的小事件（与普通卡片同字段同校验）；
+  // 仅创建者可建卡/删卡/删组，成员（被邀请加入的好友）可见全部卡片并按「提醒时间」收提醒
+  let groupFormOpen = null; // 当前展开「添加卡片」表单的组 id
+
+  const GROUP_CARD_FIELDS = [
+    ['purpose','目的'],
+    ['event','事件（必填）'],
+    ['location','地点'],
+    ['time','时间（必填，绝对时间）'],
+    ['reminderTime','提醒时间（绝对时间）'],
+    ['repeatTime','重复时间'],
+    ['repeatUntil','重复到何时'],
+    ['capacity','人数上限']
+  ];
+
+  function groupCardFieldId(gid, key){ return `gc_${gid}_${key}`; }
+
+  async function renderGroups(){
+    const box=$('groupBox'); box.textContent='';
+    if(!auth){ box.appendChild(el('div','empty','请先登录账号')); return; }
+    let groups=[];
+    try{
+      const data = await callService(54, { account: auth.account, userId: currentUserId() });
+      const r = data.result||data;
+      groups = (r && Array.isArray(r.groups)) ? r.groups : [];
+    }catch(e){
+      box.appendChild(el('div','empty','卡片组读取失败：'+String(e.message||e)));
+      return;
+    }
+    if(!groups.length){ box.appendChild(el('div','empty','（空）：输入名称创建第一个卡片组，或点「确定」让服务器自动为卡片建组')); return; }
+    for(const g of groups){
+      const isOwner = g.role==='owner';
+      const line=el('div','uentry');
+      const head=el('div','uhead');
+      head.appendChild(el('span',null,`#${g.id} ${g.name}`));
+      head.appendChild(el('span',null, g.library==='private' ? '私人' : '公开'));
+      head.appendChild(el('span',null, isOwner ? '我创建的' : `创建者 ${g.owner}`));
+      head.appendChild(el('span',null, `成员 ${g.memberCount} 人${g.members&&g.members.length?'（'+g.members.join('、')+'）':''}`));
+      head.appendChild(el('span',null, `卡片 ${g.cardCount} 张`));
+      const spacer=el('span'); spacer.style.flex='1'; head.appendChild(spacer);
+      if(isOwner){
+        const addBtn=el('button','copy','添加卡片');
+        addBtn.title='在组内创建一张小事件卡片（与普通卡片同字段）';
+        addBtn.onclick=()=>{ groupFormOpen = groupFormOpen===g.id ? null : g.id; renderGroups(); };
+        head.appendChild(addBtn);
+        // 创建者可整组在公开/私人两个组库之间移动
+        if(g.library==='public'){
+          const privBtn=el('button','copy','转私人');
+          privBtn.title='整组转为仅本人可见；成员与各卡参与人清空并在收件箱收到通知';
+          privBtn.onclick=()=>unpublishPublicGroup(g);
+          head.appendChild(privBtn);
+        }else{
+          const pubBtn=el('button','copy','转公开');
+          pubBtn.title='整组进入公开卡片组库（组内卡片人数上限自动至少 2），之后可在聊天中发送给好友';
+          pubBtn.onclick=()=>publishPrivateGroup(g);
+          head.appendChild(pubBtn);
+        }
+        const delBtn=el('button','copy','删除组');
+        delBtn.onclick=()=>deleteGroupById(g);
+        head.appendChild(delBtn);
+      }else{
+        const leaveBtn=el('button','copy','退出组');
+        leaveBtn.onclick=()=>leaveGroupById(g);
+        head.appendChild(leaveBtn);
+      }
+      line.appendChild(head);
+      // 组内卡片列表
+      const cards=Array.isArray(g.cards)?g.cards:[];
+      if(cards.length){
+        for(const card of cards){
+          const c=card.content||{};
+          const prow=el('div','uhead');
+          if(card.completedAt) prow.style.opacity='0.55';
+          prow.appendChild(el('span',null,`#${card.index} ${c.purpose||'-'} / ${c.event||'-'} / ${c.time||'-'}`));
+          if(c.location) prow.appendChild(el('span',null,`地点 ${c.location}`));
+          if(c.reminderTime) prow.appendChild(el('span',null,`提醒 ${c.reminderTime}`));
+          prow.appendChild(el('span',null,`人数 ${c.count ?? 1}/${c.capacity ?? 2}`));
+          if(c.friendOnly===true) prow.appendChild(el('span',null,'仅好友'));
+          if(c.needApproval===true) prow.appendChild(el('span',null,'需要申请'));
+          if(card.completableBy) prow.appendChild(el('span',null,`完成者 ${card.completableBy}`));
+          if(card.completedAt) prow.appendChild(el('span',null,`✓ 已完成（${card.completedBy||'?'} · ${new Date(card.completedAt).toLocaleString('zh-CN',{hour12:false})}）`));
+          const pspacer=el('span'); pspacer.style.flex='1'; prow.appendChild(pspacer);
+          // 选取（编号 76）：把这张已有卡片整份载入「正在设置卡片」；
+          // 载入后「手动制作」与 AI 对话都作用于同一张工作卡，故两种输入方式共用同一选取功能
+          const pickBtn=el('button','copy','选取');
+          pickBtn.title='把这张卡片载入「正在设置卡片」：随后可用「手动制作」修改或让 AI 完善，再点「确定」保存';
+          pickBtn.onclick=()=>pickCardToWorking(g, card.index);
+          prow.appendChild(pickBtn);
+          // 创建者或被指定完成权限的成员可把卡片标记为已完成（归档，不再提醒）
+          if(!card.completedAt && (isOwner || card.completableBy===auth.account)){
+            const doneBtn=el('button','copy','标记完成');
+            doneBtn.title='标记为已完成：不再提醒、归档展示，记录保留可查看';
+            doneBtn.onclick=()=>completeGroupCardById(g, card.index);
+            prow.appendChild(doneBtn);
+            const extBtn=el('button','copy','延期');
+            extBtn.title = isOwner
+              ? '调整这张卡片的时间（年月日时分可分别调整），点确定立即改期'
+              : '调整这张卡片的时间并向发起者提交延期申请，由发起者同意或拒绝';
+            extBtn.onclick=()=>openExtendDialog(g, card);
+            prow.appendChild(extBtn);
+          }
+          // 打卡（编号 75）：每一张卡片都有，只计数；同一天同一张卡片只能打一次，计入周报
+          const ckKey=`${g.id}:${card.index}`;
+          const ckChecked=!!(weekReportCache&&Array.isArray(weekReportCache.todayChecked)&&weekReportCache.todayChecked.includes(ckKey));
+          const ckBtn=el('button','copy', ckChecked?'今日已打卡':'打卡');
+          ckBtn.title='给这张卡片打卡（只计数）：同一天同一张卡片只能打卡一次，计入周报打卡数';
+          ckBtn.disabled=ckChecked;
+          ckBtn.onclick=()=>checkinCard(g, card.index);
+          prow.appendChild(ckBtn);
+          if(isOwner){
+            const rm=el('button','copy','删除卡片');
+            rm.title='真删该卡片（创建者权限），此操作不可恢复';
+            rm.onclick=()=>removeGroupCardById(g, card.index);
+            prow.appendChild(rm);
+          }
+          line.appendChild(prow);
+          // 完成者设置：创建者可指定组内成员或本人作为完成者；私人卡片组固定为发起者本人，不允许修改
+          const isPrivate = g.library==='private';
+          if(isPrivate){
+            if(!card.completedAt){
+              const crow=el('div','uhead');
+              crow.appendChild(el('span',null,`#${card.index} 完成者：发起者本人（${g.owner}）`));
+              crow.appendChild(el('span',null,'私人卡片组固定，不可修改'));
+              line.appendChild(crow);
+            }
+          }else if(isOwner && !card.completedAt){
+            const candidates=[g.owner].concat((g.members||[]).filter(m=>m!==g.owner));
+            const crow=el('div','uhead');
+            crow.appendChild(el('span',null,`#${card.index} 完成者：`));
+            const sel=el('select');
+            sel.style.cssText='background:#161b26;color:#cbd1de;border:1px solid #2a3040;border-radius:6px;padding:2px 6px;font-size:12px;';
+            for(const m of candidates){
+              const opt=el('option'); opt.value=m; opt.textContent=(m===g.owner?`${m}（发起者本人）`:m);
+              if(card.completableBy===m) opt.selected=true;
+              sel.appendChild(opt);
+            }
+            crow.appendChild(sel);
+            const setBtn=el('button','copy','指定');
+            setBtn.title='指定该账号作为这张卡片的完成者（可把卡片标记为已完成）';
+            setBtn.onclick=()=>setCardCompleter(g, card.index, sel.value);
+            crow.appendChild(setBtn);
+            if(card.completableBy){
+              const revokeBtn=el('button','copy','收回');
+              revokeBtn.title='收回完成者指定（收回后仍只有创建者可标记完成）';
+              revokeBtn.onclick=()=>setCardCompleter(g, card.index, null);
+              crow.appendChild(revokeBtn);
+            }
+            line.appendChild(crow);
+          }
+        }
+      }else{
+        line.appendChild(el('div','empty','（组内还没有卡片，点「添加卡片」拆分小事件）'));
+      }
+      // 「添加卡片」表单（仅创建者、展开状态时显示）
+      if(isOwner && groupFormOpen===g.id){
+        line.appendChild(buildGroupCardForm(g));
+      }
+      box.appendChild(line);
+    }
+  }
+
+  function buildGroupCardForm(g){
+    const gid=g.id;
+    const isPrivate = g.library==='private';
+    const wrap=el('div'); wrap.style.marginTop='6px';
+    const grid=el('div','manual-grid');
+    for(const [key,label] of GROUP_CARD_FIELDS){
+      const f=el('div','mfield');
+      f.appendChild(el('label',null,label));
+      const input=el('input');
+      input.id=groupCardFieldId(gid,key);
+      if(key==='time') input.placeholder='2026-10-02 10:00 或 10:00~12:00 时段';
+      else if(key==='reminderTime') input.placeholder='与「时间」同格式，如 2026-10-02 09:30';
+      else if(key==='capacity'){ input.type='number'; input.min=isPrivate?'1':'2'; input.value=isPrivate?'1':'2'; }
+      else if(key==='purpose') input.placeholder='如：毕业旅行·第一天';
+      else if(key==='event') input.placeholder='如：上午集合出发去机场';
+      input.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); addGroupCardTo(g); } });
+      f.appendChild(input);
+      grid.appendChild(f);
+    }
+    wrap.appendChild(grid);
+    const row=el('div','row'); row.style.marginTop='8px';
+    const apply=el('button','primary','写入卡片组');
+    apply.onclick=()=>addGroupCardTo(g);
+    row.appendChild(apply);
+    row.appendChild(el('span','card-hint', isPrivate
+      ? '「事件 + 时间」必填，时间格式 YYYY-MM-DD HH:mm；私人组卡片人数上限默认 1'
+      : '「事件 + 时间」必填，时间格式 YYYY-MM-DD HH:mm；人数上限默认 2（含创建者）；好友接受组邀请后自动加入未满的卡片'));
+    const err=el('span','hint'); err.id=groupCardFieldId(gid,'hint');
+    row.appendChild(err);
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  // 设置「完成权限」（编号 61）：创建者指定组内一名成员获得某张卡片的完成权限；memberAccount 为 null 表示收回
+  async function setCardCompleter(g, cardIndex, memberAccount){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','完成权限','请先登录账号'); return; }
+    try{
+      const data=await callService(61,{account:auth.account, groupId:g.id, cardIndex, memberAccount, userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','完成权限',(r&&r.message)||'已设置完成权限');
+      await renderGroups();
+      loadLib();
+    }catch(err){
+      addLogEntry('in','完成权限',`设置失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 标记卡片已完成（编号 62）：创建者或被指定完成权限的成员可操作；完成后自动出明信片并把卡片从组内删除
+  async function completeGroupCardById(g, cardIndex){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','标记完成','请先登录账号'); return; }
+    if(!confirm(`把卡片组「${g.name}」的卡片 #${cardIndex} 标记为已完成吗？\n完成后会顺带生成一张明信片（存本地明信片库），并把该卡片从卡片组中删除。`)) return;
+    try{
+      const data=await callService(62,{account:auth.account, groupId:g.id, cardIndex, userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','标记完成',(r&&r.message)||'已标记为已完成');
+      if(r&&r.postcard&&r.postcard.text){
+        addLogEntry('in','明信片',`已为卡片 #${cardIndex} 生成明信片：${r.postcard.text}`);
+      }
+      await renderGroups();
+      await loadLib();
+      renderPostcards();
+      renderReport(); // 完成数 +1，并同步给当天打卡 +1
+      loadUpcomingReminders();
+    }catch(err){
+      addLogEntry('in','标记完成',`标记失败：${String(err.message||err)}`);
+    }
+  }
+
+  // ---- 选取卡片：编号 76 = cards.pick ----
+  // 把一张已有卡片整份载入「正在设置卡片」（工作卡）：载入后「手动制作」与 AI 对话都作用于同一张工作卡，
+  // 因此这同一个选取功能被两种输入方式共用。载入后刷新工作卡面板与手动表单，便于直接继续编辑。
+  async function pickCardToWorking(g, cardIndex){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','选取卡片','请先登录账号'); return; }
+    try{
+      const data=await callService(76,{account:auth.account, groupId:g.id, cardIndex, userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','选取卡片',(r&&r.message)||`已选取卡片 #${cardIndex} 作为「正在设置卡片」`);
+      await loadStatus(); // 从服务器重新拉取工作卡：按钮、上限、参与人、冲突一并同步
+      if($('manualBar') && $('manualBar').style.display!=='none') prefillManualForm(); // 手动面板打开时同步回填
+    }catch(err){
+      addLogEntry('in','选取卡片',`选取失败：${String(err.message||err)}`);
+    }
+  }
+
+  // ---- 卡片延期：编号 67 cards.extend / 68 cards.extend-requests / 69 cards.extend-approve / 70 cards.extend-reject ----
+  // 创建者（发起者）提交 → 时间立即改变；被指定「完成权限」的参与者提交 → 生成延期申请交给创建者审批；
+  // 审批结果（无论同意或拒绝）由服务器同时投递到申请者的「通知通道」与「收件箱」。
+  let extendTarget = null; // 当前正在调整时间的卡片：{ g, card, isOwner }
+
+  function pad2(n){ return String(n).length<2 ? ('0'+n) : String(n); }
+
+  // 把卡片当前「时间」文本解析成开始/结束的年月日时分（支持 时段 ~HH:mm 与跨天 ~YYYY-MM-DD HH:mm）
+  function parseCardTime(text){
+    const s=typeof text==='string'?text.trim():'';
+    const m=/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?:~(\d{2}):(\d{2})|~(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}))?$/.exec(s);
+    if(!m) return null;
+    const start={y:+m[1],mo:+m[2],d:+m[3],h:+m[4],mi:+m[5]};
+    let end=null;
+    if(m[6]!==undefined) end={y:start.y,mo:start.mo,d:start.d,h:+m[6],mi:+m[7]};
+    else if(m[8]!==undefined) end={y:+m[8],mo:+m[9],d:+m[10],h:+m[11],mi:+m[12]};
+    return {start,end};
+  }
+
+  function setTimeInputs(prefix, t){
+    if(!t) return;
+    $(prefix+'Years').value=t.y;
+    $(prefix+'Months').value=t.mo;
+    $(prefix+'Days').value=t.d;
+    $(prefix+'Hours').value=t.h;
+    $(prefix+'Minutes').value=t.mi;
+  }
+
+  // 读一组「年/月/日/时/分」输入，校验并拼成服务器要求的绝对时间 "YYYY-MM-DD HH:mm"
+  function readTimeInputs(prefix){
+    const y=Number($(prefix+'Years').value), mo=Number($(prefix+'Months').value), d=Number($(prefix+'Days').value);
+    const h=Number($(prefix+'Hours').value), mi=Number($(prefix+'Minutes').value);
+    if(![y,mo,d,h,mi].every(Number.isInteger)) return {error:'请把年月日时分都填成整数'};
+    if(y<1970||y>9999) return {error:'年份需在 1970–9999 之间'};
+    if(mo<1||mo>12) return {error:'月份需在 1–12 之间'};
+    if(d<1||d>31) return {error:'日期需在 1–31 之间'};
+    if(h<0||h>23) return {error:'小时需在 0–23 之间'};
+    if(mi<0||mi>59) return {error:'分钟需在 0–59 之间'};
+    const dt=new Date(y, mo-1, d, h, mi, 0, 0);
+    if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d) return {error:'这个日期不存在，请检查年月日'};
+    return { text:`${y}-${pad2(mo)}-${pad2(d)} ${pad2(h)}:${pad2(mi)}`, ms:dt.getTime() };
+  }
+
+  function syncExtendEndDisabled(){
+    const on=$('extUseEnd').checked===true;
+    for(const k of ['Years','Months','Days','Hours','Minutes']) $('extEnd'+k).disabled=!on;
+  }
+
+  function openExtendDialog(g, card){
+    if(!auth){ addLogEntry('in','延期','请先登录账号'); return; }
+    const isOwner = g.role==='owner';
+    extendTarget={ g, card, isOwner };
+    const c=card.content||{};
+    $('extendCardLabel').textContent=`（卡片组「${g.name}」#${card.index}「${c.event||'未命名'}」）`;
+    const parsed=parseCardTime(c.time);
+    const n=new Date();
+    const start=parsed?parsed.start:{y:n.getFullYear(),mo:n.getMonth()+1,d:n.getDate(),h:n.getHours(),mi:n.getMinutes()};
+    setTimeInputs('ext', start);
+    const defEnd=(()=>{ const e=new Date(start.y,start.mo-1,start.d,start.h,start.mi+60); return {y:e.getFullYear(),mo:e.getMonth()+1,d:e.getDate(),h:e.getHours(),mi:e.getMinutes()}; })();
+    setTimeInputs('extEnd', (parsed&&parsed.end)?parsed.end:defEnd);
+    $('extUseEnd').checked=!!(parsed&&parsed.end);
+    syncExtendEndDisabled();
+    $('extendRoleHint').textContent = isOwner
+      ? '你是该卡片的发起者：点「确定」后时间立即改变'
+      : `你是被指定完成权限的参与者：点「确定」将向发起者 ${g.owner} 提交延期申请，等待对方同意`;
+    $('extendHint').textContent='';
+    $('extendPicker').style.display='flex';
+  }
+
+  function closeExtendDialog(){
+    $('extendPicker').style.display='none';
+    extendTarget=null;
+  }
+
+  async function submitExtend(){
+    if(sending) return;
+    if(!auth){ $('extendHint').textContent='请先登录账号'; return; }
+    if(!extendTarget){ closeExtendDialog(); return; }
+    const start=readTimeInputs('ext');
+    if(start.error){ $('extendHint').textContent=start.error; return; }
+    let endTime=null;
+    if($('extUseEnd').checked===true){
+      const end=readTimeInputs('extEnd');
+      if(end.error){ $('extendHint').textContent=end.error; return; }
+      if(end.ms<=start.ms){ $('extendHint').textContent='结束时间必须晚于开始时间'; return; }
+      endTime=end.text;
+    }
+    const target=extendTarget;
+    sending=true;
+    $('extendSubmitBtn').disabled=true;
+    try{
+      const data=await callService(67,{account:auth.account, userId:currentUserId(), groupId:target.g.id, cardIndex:target.card.index, time:start.text, endTime});
+      const r=data.result||data;
+      addLogEntry('in','延期',(r&&r.message)||'延期请求已处理');
+      closeExtendDialog();
+      await renderGroups();
+      await loadLib();
+      loadExtendRequests();
+      loadNotices();
+      renderReport(); // 延时数 +1（无论申请是否被同意）
+      loadUpcomingReminders();
+    }catch(err){
+      $('extendHint').textContent=String(err.message||err);
+    }finally{
+      sending=false;
+      $('extendSubmitBtn').disabled=false;
+    }
+  }
+
+  // 延期申请面板（编号 68）：我（作为创建者）收到的、仍待处理的延期申请
+  async function loadExtendRequests(){
+    const box=$('extReqBox');
+    if(!box) return;
+    box.textContent='';
+    if(!auth){ box.appendChild(el('div','empty','请先登录账号')); return; }
+    try{
+      const d=await postTask(68,{account:auth.account, userId:currentUserId()});
+      const r=d.result||d;
+      const list=(r&&Array.isArray(r.requests))?r.requests:[];
+      if(!list.length){ box.appendChild(el('div','empty','（暂无延期申请）')); return; }
+      for(const req of list){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`#${req.id} ${req.fromAccount||'?'} 申请延期`));
+        head.appendChild(el('span',null,`组#${req.groupId} 卡片#${req.cardIndex}`));
+        if(req.createdAt) head.appendChild(el('span',null,new Date(req.createdAt).toLocaleString('zh-CN',{hour12:false})));
+        const sp=el('span'); sp.style.flex='1'; head.appendChild(sp);
+        const okBtn=el('button','copy','同意');
+        okBtn.onclick=()=>approveExtendRequest(req.id);
+        head.appendChild(okBtn);
+        const noBtn=el('button','copy','拒绝');
+        noBtn.onclick=()=>rejectExtendRequest(req.id);
+        head.appendChild(noBtn);
+        line.appendChild(head);
+        const c=el('div','ucontent');
+        c.textContent=`「${req.event||'未命名'}」申请调整至 ${req.targetTime||'-'}${req.targetEndTime?(' ~ '+req.targetEndTime):''}`;
+        line.appendChild(c);
+        box.appendChild(line);
+      }
+    }catch(e){
+      box.appendChild(el('div','empty','延期申请读取失败：'+String(e.message||e)));
+    }
+  }
+
+  async function approveExtendRequest(requestId){
+    if(!auth) return;
+    try{
+      const data=await callService(69,{account:auth.account, userId:currentUserId(), requestId});
+      const r=data.result||data;
+      addLogEntry('in','延期申请',(r&&r.message)||'已同意延期申请');
+      await renderGroups();
+      await loadLib();
+      loadExtendRequests();
+      loadNotices();
+      loadUpcomingReminders();
+    }catch(err){
+      addLogEntry('in','延期申请',`同意失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function rejectExtendRequest(requestId){
+    if(!auth) return;
+    try{
+      const data=await callService(70,{account:auth.account, userId:currentUserId(), requestId});
+      const r=data.result||data;
+      addLogEntry('in','延期申请',(r&&r.message)||'已拒绝延期申请');
+      loadExtendRequests();
+      loadNotices();
+    }catch(err){
+      addLogEntry('in','延期申请',`拒绝失败：${String(err.message||err)}`);
+    }
+  }
+
+  // ---- 通知通道（新通道）：编号 71 notices.list / 72 notices.read / 73 notices.remove ----
+  // 延期申请被同意/拒绝后，服务器把结果同时投递到这里与收件箱；轮询用 postTask 直连，不触发私人卡片备份
+  let noticeBusy=false;
+
+  function noticeUnreadText(t){ const s=$('noticeUnread'); if(s) s.textContent=t||''; }
+
+  async function loadNotices(){
+    const box=$('noticeBox');
+    if(!box) return;
+    if(!auth){ noticeUnreadText(''); box.textContent=''; box.appendChild(el('div','empty','请先登录账号')); return; }
+    if(noticeBusy) return;
+    noticeBusy=true;
+    box.textContent='';
+    try{
+      const d=await postTask(71,{account:auth.account, userId:currentUserId()});
+      const r=d.result||d;
+      const list=(r&&Array.isArray(r.notices))?r.notices:[];
+      noticeUnreadText(r&&Number.isFinite(r.unread)&&r.unread>0?`未读 ${r.unread} 条`:'');
+      if(!list.length){ box.appendChild(el('div','empty','（暂无通知：延期申请被处理后，结果会提示到这里与收件箱）')); return; }
+      for(const n of list){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`${n.readAt?'🔔':'🔕'} ${n.title||'（无标题）'}${n.readAt?'':'（未读）'}`));
+        if(n.createdAt) head.appendChild(el('span',null,new Date(n.createdAt).toLocaleString('zh-CN',{hour12:false})));
+        const sp=el('span'); sp.style.flex='1'; head.appendChild(sp);
+        if(!n.readAt){
+          const okBtn=el('button','copy','已读');
+          okBtn.onclick=()=>markNoticeRead(n.id);
+          head.appendChild(okBtn);
+        }
+        const delBtn=el('button','copy','删除');
+        delBtn.onclick=()=>removeNoticeById(n.id);
+        head.appendChild(delBtn);
+        line.appendChild(head);
+        const c=el('div','ucontent'); c.textContent=n.body||''; line.appendChild(c);
+        box.appendChild(line);
+      }
+    }catch(e){
+      noticeUnreadText('');
+      box.appendChild(el('div','empty','通知读取失败：'+String(e.message||e)));
+    }finally{
+      noticeBusy=false;
+    }
+  }
+
+  async function markNoticeRead(id){
+    if(!auth) return;
+    try{ await postTask(72,{account:auth.account, id}); await loadNotices(); }
+    catch(err){ addLogEntry('in','通知',`标记已读失败：${String(err.message||err)}`); }
+  }
+
+  async function removeNoticeById(id){
+    if(!auth) return;
+    try{ await postTask(73,{account:auth.account, id}); await loadNotices(); }
+    catch(err){ addLogEntry('in','通知',`删除通知失败：${String(err.message||err)}`); }
+  }
+
+  async function markAllNoticesRead(){
+    if(!auth) return;
+    try{ await postTask(72,{account:auth.account, all:true}); await loadNotices(); }
+    catch(err){ addLogEntry('in','通知',`全部已读失败：${String(err.message||err)}`); }
+  }
+
+  async function clearNotices(){
+    if(!auth) return;
+    if(!confirm('确定清空通知通道里的全部通知吗？此操作不可恢复。')) return;
+    try{ await postTask(73,{account:auth.account, all:true}); await loadNotices(); }
+    catch(err){ addLogEntry('in','通知',`清空通知失败：${String(err.message||err)}`); }
+  }
+
+  async function createGroupByName(){
+    if(!auth){ addLogEntry('in','卡片组','请先登录账号'); return; }
+    const input=$('groupNameInput');
+    const name=String(input.value||'').trim();
+    if(!name){ addLogEntry('in','卡片组','请先输入卡片组名称（如：毕业旅行）'); return; }
+    const isPrivate=$('groupPrivateInput').checked===true;
+    try{
+      const data=await callService(53,{account:auth.account,name,library:isPrivate?'private':'public',userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','卡片组',`已创建${isPrivate?'私人':'公开'}卡片组「${r.name}」#${r.id}，可往里添加小事件卡片`);
+      input.value='';
+      $('groupPrivateInput').checked=false;
+      await renderGroups();
+      if(isPrivate) renderPrivateLib();
+    }catch(err){
+      addLogEntry('in','卡片组',`创建失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function deleteGroupById(g){
+    if(!confirm(`删除卡片组「${g.name}」吗？组内 ${g.cardCount} 张卡片将一并删除，此操作不可恢复。`)) return;
+    try{
+      const data=await callService(55,{account:auth.account,groupId:g.id,userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','卡片组',(r&&r.message)||'已删除卡片组');
+      if(groupFormOpen===g.id) groupFormOpen=null;
+      await renderGroups();
+      await loadLib();
+      renderPrivateLib();
+      loadUpcomingReminders();
+    }catch(err){
+      addLogEntry('in','卡片组',`删除失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function leaveGroupById(g){
+    if(!confirm(`退出卡片组「${g.name}」吗？你将不再看到组内卡片，并从组内卡片的参与人与完成权限中移除。`)) return;
+    try{
+      const data=await callService(58,{account:auth.account,groupId:g.id,userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','卡片组',(r&&r.message)||'已退出卡片组');
+      await renderGroups();
+      await loadLib();
+      loadUpcomingReminders();
+    }catch(err){
+      addLogEntry('in','卡片组',`退出失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function addGroupCardTo(g){
+    if(!auth) return;
+    const gid=g.id;
+    const minCap = g.library==='private' ? 1 : 2;
+    const fields={};
+    for(const [key] of GROUP_CARD_FIELDS){
+      if(key==='capacity'){
+        const raw=Number($(groupCardFieldId(gid,key)).value);
+        fields.capacity=(Number.isInteger(raw)&&raw>=minCap)?raw:minCap; // 公开组卡片上限至少 2：保证好友接受邀请后能加入
+      }else{
+        fields[key]=String($(groupCardFieldId(gid,key)).value||'').trim();
+      }
+    }
+    const hintNode=$(groupCardFieldId(gid,'hint'));
+    if(hintNode) hintNode.textContent='';
+    if(!fields.event){ if(hintNode) hintNode.textContent='「事件」不能为空'; return; }
+    if(!fields.time){ if(hintNode) hintNode.textContent='「时间」不能为空'; return; }
+    if(!isAbsTime(fields.time)){ if(hintNode) hintNode.textContent='「时间」格式应为 YYYY-MM-DD HH:mm（可带 ~ 时段）'; return; }
+    if(fields.reminderTime!=='' && !isAbsTime(fields.reminderTime)){ if(hintNode) hintNode.textContent='「提醒时间」格式应与「时间」一致'; return; }
+    try{
+      const data=await callService(56,{account:auth.account,groupId:gid,fields,userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','卡片组',(r&&r.message)||'已把卡片加入卡片组');
+      groupFormOpen=null;
+      await renderGroups();
+      loadUpcomingReminders(); // 新卡片可能带来新的提醒
+    }catch(err){
+      if(hintNode) hintNode.textContent='写入失败：'+String(err.message||err);
+      addLogEntry('in','卡片组',`写入失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function removeGroupCardById(g, cardIndex){
+    if(!confirm(`删除组内卡片 #${cardIndex} 吗？此操作不可恢复。`)) return;
+    try{
+      const data=await callService(57,{account:auth.account,groupId:g.id,cardIndex,userId:currentUserId()});
+      const r=data.result||data;
+      addLogEntry('in','卡片组',(r&&r.message)||'已删除组内卡片');
+      await renderGroups();
+      await loadLib();
+      loadUpcomingReminders();
+    }catch(err){
+      addLogEntry('in','卡片组',`删除失败：${String(err.message||err)}`);
+    }
+  }
+
+  // ---- 卡片申请：他人申请加入我发起的卡片（编号 26 收件箱 / 27 同意 / 28 拒绝） ----
+  // 收件箱：列出别人向我（卡片发起者）发来的待处理加入申请
+  async function loadCardRequests(){
+    const box=$('cardReqBox'); box.textContent='';
+    if(!auth){ box.appendChild(el('div','empty','请先登录账号')); return; }
+    try{
+      const data = await callService(26, {userId:currentUserId(), account:auth.account});
+      const r = data.result||data;
+      const reqs=(r&&r.requests)||[];
+      if(!reqs.length){ box.appendChild(el('div','empty','（没有待处理的加入申请）')); return; }
+      for(const q of reqs){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`${q.fromAccount} 申请加入卡片组 #${q.groupId} 的卡片 #${q.cardIndex}`));
+        head.appendChild(el('span',null,new Date(q.createdAt).toLocaleString('zh-CN',{hour12:false})));
+        const spacer=el('span'); spacer.style.flex='1'; head.appendChild(spacer);
+        const okBtn=el('button','copy','同意');
+        okBtn.onclick=()=>approveCardRequest(q.id);
+        head.appendChild(okBtn);
+        const noBtn=el('button','copy','拒绝');
+        noBtn.onclick=()=>rejectCardRequest(q.id);
+        head.appendChild(noBtn);
+        line.appendChild(head);
+        box.appendChild(line);
+      }
+    }catch(e){
+      box.textContent='';
+      box.appendChild(el('div','empty','卡片申请读取失败：'+String(e.message||e)));
+    }
+  }
+  // 同意加入申请（编号 27）：申请人写入参与人并成为组成员，申请从申请库删除
+  async function approveCardRequest(requestId){
+    try{
+      const data = await callService(27, {userId:currentUserId(), account:auth.account, requestId});
+      const r=data.result||data;
+      addLogEntry('in','同意卡片申请',(r&&r.message)||'已同意加入申请');
+      await loadCardRequests();
+      await loadLib();
+      await renderGroups();
+    }catch(err){
+      addLogEntry('in','同意卡片申请',`处理失败：${String(err.message||err)}`);
+    }
+  }
+  // 拒绝加入申请（编号 28）：不写入参与人，申请从申请库删除
+  async function rejectCardRequest(requestId){
+    try{
+      const data = await callService(28, {userId:currentUserId(), account:auth.account, requestId});
+      const r=data.result||data;
+      addLogEntry('in','拒绝卡片申请',(r&&r.message)||'已拒绝加入申请');
+      await loadCardRequests();
+      await loadLib();
+    }catch(err){
+      addLogEntry('in','拒绝卡片申请',`处理失败：${String(err.message||err)}`);
+    }
+  }
+
+  // ---- 好友：用户列表（编号 16，含搜索）/ 发送申请（17）/ 收件箱（18）/ 同意（19）/ 拒绝（23） ----
+  const USER_STATE_LABEL = { friend:'已是好友', requested:'已申请，等待对方同意', incoming:'对方已申请，请到收件箱处理' };
+  // 用户列表：展示其他用户，支持按账号关键词搜索；可添加的显示「+」
+  async function loadUsers(){
+    const box=$('userBox'); box.textContent='';
+    if(!auth){ box.appendChild(el('div','empty','请先登录账号')); return; }
+    try{
+      const data=await callService(16,{userId:currentUserId(), account:auth.account, keyword:$('userSearch').value.trim()});
+      const r=data.result||data;
+      const users=(r&&r.users)||[];
+      if(!users.length){ box.appendChild(el('div','empty','（没有匹配的用户）')); return; }
+      for(const u of users){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`${u.account}（userId=${u.userId}）`));
+        if(USER_STATE_LABEL[u.state]) head.appendChild(el('span',null,USER_STATE_LABEL[u.state]));
+        const spacer=el('span'); spacer.style.flex='1'; head.appendChild(spacer);
+        if(u.state==='none'){
+          const addBtn=el('button','copy','+');
+          addBtn.onclick=()=>sendFriendRequest(u);
+          head.appendChild(addBtn);
+        } else if(u.state==='friend'){
+          const delBtn=el('button','copy','删除');
+          delBtn.onclick=()=>removeFriend(u.account, u.userId);
+          head.appendChild(delBtn);
+        }
+        line.appendChild(head);
+        box.appendChild(line);
+      }
+    }catch(e){
+      box.textContent='';
+      box.appendChild(el('div','empty','用户列表读取失败：'+String(e.message||e)));
+    }
+  }
+  // 「+」发送好友申请：申请进入服务器申请库，对方登录后出现在其收件箱
+  async function sendFriendRequest(user){
+    try{
+      const data=await callService(17,{userId:currentUserId(), account:auth.account, toAccount:user.account, toUserId:user.userId});
+      const r=data.result||data;
+      addLogEntry('in','好友申请',(r&&r.message)||`已向 ${user.account} 发送好友申请`);
+      await loadUsers();
+    }catch(err){
+      addLogEntry('in','好友申请',`发送失败：${String(err.message||err)}`);
+    }
+  }
+  // 收件箱：登录后收取发给当前账号的好友申请；下方展示关系库中已有的好友
+  async function loadInbox(){
+    const box=$('inboxBox'); box.textContent='';
+    if(!auth){ box.appendChild(el('div','empty','请先登录账号')); return; }
+    try{
+      const data=await callService(18,{userId:currentUserId(), account:auth.account});
+      const r=data.result||data;
+      const reqs=(r&&r.requests)||[];
+      const friends=(r&&r.friends)||[];
+      if(!reqs.length) box.appendChild(el('div','empty','（没有待处理的好友申请）'));
+      for(const q of reqs){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`${q.fromAccount} 申请加你为好友`));
+        head.appendChild(el('span',null,new Date(q.createdAt).toLocaleString('zh-CN',{hour12:false})));
+        const spacer=el('span'); spacer.style.flex='1'; head.appendChild(spacer);
+        const okBtn=el('button','copy','同意');
+        okBtn.onclick=()=>acceptRequest(q.id);
+        head.appendChild(okBtn);
+        const noBtn=el('button','copy','拒绝');
+        noBtn.onclick=()=>rejectRequest(q.id);
+        head.appendChild(noBtn);
+        line.appendChild(head);
+        box.appendChild(line);
+      }
+      if(friends.length){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`好友（${friends.length}）`));
+        line.appendChild(head);
+        box.appendChild(line);
+        for(const f of friends){
+          const frow=el('div','uentry');
+          const fhead=el('div','uhead');
+          fhead.appendChild(el('span',null,`${f.account}（userId=${f.userId}）`));
+          const spacer=el('span'); spacer.style.flex='1'; fhead.appendChild(spacer);
+          const delBtn=el('button','copy','删除');
+          delBtn.onclick=()=>removeFriend(f.account, f.userId);
+          fhead.appendChild(delBtn);
+          frow.appendChild(fhead);
+          box.appendChild(frow);
+        }
+      }
+    }catch(e){
+      box.textContent='';
+      box.appendChild(el('div','empty','收件箱读取失败：'+String(e.message||e)));
+    }
+  }
+  // 同意好友申请：服务器在关系库中双向记录好友关系，并把该申请从申请库删除
+  async function acceptRequest(requestId){
+    try{
+      const data=await callService(19,{userId:currentUserId(), account:auth.account, requestId});
+      const r=data.result||data;
+      addLogEntry('in','同意好友',(r&&r.message)||'已同意好友申请');
+      await loadInbox();
+      await loadUsers();
+      loadChatList(); // 新好友进入会话列表
+    }catch(err){
+      addLogEntry('in','同意好友',`处理失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 拒绝好友申请（编号 23）：不建立关系，服务器直接把该申请从申请库删除，对方可再次申请
+  async function rejectRequest(requestId){
+    try{
+      const data=await callService(23,{userId:currentUserId(), account:auth.account, requestId});
+      const r=data.result||data;
+      addLogEntry('in','拒绝好友',(r&&r.message)||'已拒绝好友申请');
+      await loadInbox();
+      await loadUsers();
+    }catch(err){
+      addLogEntry('in','拒绝好友',`处理失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 删除好友（编号 21）：无需申请，服务器直接解除双方关系
+  async function removeFriend(account, userId){
+    if(!confirm(`确定解除与 ${account} 的好友关系吗？解除后双方关系直接清除，无需申请。`)) return;
+    try{
+      const data=await callService(21,{userId:currentUserId(), account:auth.account, toAccount:account, toUserId:userId});
+      const r=data.result||data;
+      addLogEntry('in','删除好友',(r&&r.message)||`已解除与 ${account} 的好友关系`);
+      await loadInbox();
+      await loadUsers();
+      loadChatList(); // 好友关系解除后同步会话列表
+    }catch(err){
+      addLogEntry('in','删除好友',`删除失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 用户资料与卡片全部由服务器长期保存（用户资料库仅 AI 可读、不在界面展示），客户端不再持有任何副本
+
+  // ---- 注册/登录（仅账号密码；登录后账号与 IP 临时绑定） ----
+  const AUTH_KEY='aiAuth';
+  let auth=null;
+  function loadAuth(){ try{ const v=localStorage.getItem(AUTH_KEY); return v?JSON.parse(v):null; }catch{ return null; } }
+  function saveAuth(a){ try{ if(a) localStorage.setItem(AUTH_KEY,JSON.stringify(a)); }catch{ /* 忽略 */ } }
+  function clearAuth(){ try{ localStorage.removeItem(AUTH_KEY); }catch{ /* 忽略 */ } }
+  // 未登录时返回 1 仅作占位：服务器一律按登录 token 判定真实身份，客户端报什么都不算数
+  function currentUserId(){
+    return (auth && Number.isInteger(auth.userId) && auth.userId>=1) ? auth.userId : 1;
+  }
+  function splitAddr(s){
+    if(typeof s!=='string'||!s) return null;
+    const idx=s.lastIndexOf(':');
+    if(idx===-1) return { ip:s, port:null };
+    return { ip:s.slice(0,idx), port:Number(s.slice(idx+1)) };
+  }
+  async function resolveMyAddr(){
+    try{ const c=await raw('/api/health'); if(c.ok && c.body?.code===0) return c.body.data.myAddr; }catch{}
+    return null;
+  }
+  function authPanel(text, err){
+    const st=$('authStatus');
+    st.textContent=text||'';
+    st.style.color=err?'#f85149':'#8b95a9';
+  }
+  async function doAuth(action){
+    const account=$('authAccount').value.trim();
+    const password=$('authPassword').value;
+    if(!account){ authPanel('请输入账号', true); return; }
+    if(!password){ authPanel('请输入密码', true); return; }
+    try{
+      if(action===0){
+        const data=await callService(10, {account, password});
+        const r=data.result||data;
+        authPanel(`注册成功：${r.account}（userId=${r.userId}），请登录`, false);
+      }else{
+        const addr=splitAddr(await resolveMyAddr());
+        const data=await callService(11, {account, password, ip:addr?addr.ip:null, port:addr?addr.port:null});
+        const r=data.result||data;
+        auth={ account:r.account, userId:r.userId, token:r.token };
+        saveAuth(auth);
+        updateAuthPanel();
+        await loadStatus(); // 登录后立即同步公开/私人、人数上限与参与人（此前未登录时接口 401）
+        await refreshUsers(); // 登录后刷新对话记录（服务器保存，此前未登录会 401）
+        await loadLib(); // 登录后刷新公开卡片组库与私人卡片组库
+        await loadUsers(); // 登录后展示用户列表（可发好友申请）
+        await loadInbox(); // 登录后把服务器申请库中的好友申请收进收件箱
+        await loadCardRequests(); // 登录后把服务器卡片申请库中的加入申请收进卡片申请面板
+        await renderReport(); // 登录后取本账号周报（客户端本地库 + 服务器本周卡片数）
+        renderGroups(); // 拿到「今天已打卡」状态后再渲染卡片行
+        renderPostcards(); // 登录后展示本账号已有的明信片（客户端本地文件）
+        try{ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){ /* 忽略 */ }
+        startReminderLoop(); // 登录后开启日程提醒轮询（到点自动弹出提醒）
+      }
+    }catch(err){
+      authPanel((action===0?'注册失败：':'登录失败：')+String(err.message||err), true);
+    }
+  }
+  // 登录状态展示：未登录显示「请登录」，已登录显示账号；仅登录后开放退出/注销
+  function updateAuthPanel(){
+    const loggedIn=!!auth;
+    $('authLogoutBtn').disabled=!loggedIn;
+    $('authDeleteBtn').disabled=!loggedIn;
+    $('authLoginBtn').disabled=loggedIn;
+    $('authRegisterBtn').disabled=loggedIn;
+    const st=$('authStatus');
+    st.textContent=loggedIn?`已登录：${auth.account}（userId=${auth.userId}）`:'请登录';
+    st.style.color=loggedIn?'#3fb950':'#8b95a9';
+    renderPrivateLib();
+    renderGroups();
+    renderPrivBackupHint();
+  }
+  // 退出登录：编号 12 = auth.logout
+  async function doLogout(){
+    if(!auth) return;
+    try{
+      await callService(12,{account:auth.account, userId:auth.userId, token:auth.token});
+    }catch(e){ /* 服务器 session 可能已失效，本地一律退出 */ }
+    clearAuth();
+    auth=null;
+    updateAuthPanel();
+    authPanel('已退出登录', false);
+    stopReminderLoop(); // 退出登录后停止提醒轮询
+    await refreshUsers();
+    await loadUsers();
+    await loadInbox();
+    await loadCardRequests();
+  }
+  // 注销账号：编号 13 = auth.unregister（用账号密码校验身份，注销后本地退出）
+  async function doDelete(){
+    if(!auth) return;
+    const password=$('authPassword').value;
+    if(!password){ authPanel('注销需要输入账号密码', true); return; }
+    if(!confirm(`确定注销账号「${auth.account}」吗？账号将被永久删除，此操作不可恢复。`)) return;
+    try{
+      await callService(13,{account:auth.account, password});
+      clearAuth();
+      auth=null;
+      updateAuthPanel();
+      authPanel('账号已注销', false);
+      stopReminderLoop(); // 注销账号后停止提醒轮询
+      await refreshUsers();
+      await loadUsers();
+      await loadInbox();
+      await loadCardRequests();
+    }catch(err){
+      authPanel('注销失败：'+String(err.message||err), true);
+    }
+  }
+  // ---- 日程提醒：编号 40 = reminders.due（到点拉取，服务器保证同一条只发一次）/ 编号 41 = reminders.upcoming（未来 7 天预览） ----
+  // 受「服务器无反向投递」约束，提醒由本页面轮询拉取；轮询用 postTask 直连，不触发私人卡片备份
+  const REMIND_CHECK_MS = 30000;
+  let remindTimer = null;
+  let remindBusy = false;
+
+  function remindStatusText(t){ const s=$('remindStatus'); if(s) s.textContent=t; }
+
+  function reminderText(it){
+    const parts=[`「${it.event||'未命名日程'}」提醒时间到了`];
+    if(it.purpose) parts.push(`目的：${it.purpose}`);
+    if(it.initiator && it.initiator!==auth?.account) parts.push(`发起者：${it.initiator}`);
+    if(it.eventStart) parts.push(`日程时间：${it.eventStart}${it.repeatTime?`（${it.repeatTime}${it.repeatUntil?'，重复到 '+it.repeatUntil:''}）`:''}`);
+    if(it.location) parts.push(`地点：${it.location}`);
+    if(it.participant) parts.push(`参与人：${it.participant}`);
+    parts.push(`提醒时刻：${it.remindAt}`);
+    return parts.join('\n');
+  }
+
+  function notifyByBrowser(it){
+    try{
+      if(!('Notification' in window) || Notification.permission!=='granted') return;
+      new Notification('日程提醒', { body: reminderText(it) });
+    }catch(e){ /* 浏览器通知失败不影响页面弹窗 */ }
+  }
+
+  function showReminderPopup(it){
+    const pop=$('remindPop');
+    const box=el('div','reminder-item');
+    box.appendChild(el('div','rtitle','⏰ 日程提醒'));
+    box.appendChild(el('div','rbody',reminderText(it)));
+    const row=el('div','rrow');
+    const okBtn=el('button','copy','知道了');
+    okBtn.onclick=()=>box.remove();
+    row.appendChild(okBtn);
+    box.appendChild(row);
+    pop.appendChild(box);
+    addLogEntry('in','日程提醒',reminderText(it));
+    notifyByBrowser(it);
+  }
+
+  // 到点提醒轮询：登录后每 30 秒拉取一次；拉取到的提醒弹浮窗 + 浏览器通知
+  async function pollDueReminders(){
+    if(!auth || remindBusy) return;
+    remindBusy=true;
+    try{
+      const d = await postTask(40, { userId: currentUserId(), account: auth.account });
+      const r = d.result || d;
+      const list = (r && Array.isArray(r.reminders)) ? r.reminders : [];
+      for(const it of list) showReminderPopup(it);
+      if(list.length) await loadUpcomingReminders();
+    }catch(e){ /* 轮询失败静默，下一轮重试；401 时 postTask 已清理登录态 */ }
+    finally{ remindBusy=false; }
+  }
+
+  // 即将到来的提醒预览（编号 41）：渲染「日程提醒」面板
+  async function loadUpcomingReminders(){
+    const box=$('remindBox'); box.textContent='';
+    if(!auth){ remindStatusText('未登录'); box.appendChild(el('div','empty','请先登录账号')); return; }
+    try{
+      const d = await postTask(41, { userId: currentUserId(), account: auth.account });
+      const r = d.result || d;
+      const list = (r && Array.isArray(r.reminders)) ? r.reminders : [];
+      remindStatusText(`已开启：每 ${REMIND_CHECK_MS/1000} 秒自动检查`);
+      if(!list.length){ box.appendChild(el('div','empty','（提醒只在到点时弹出，不再提前预告）')); return; }
+      for(const it of list){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`⏰ ${it.event||'未命名日程'}`));
+        head.appendChild(el('span',null, it.library==='group' ? `组「${it.groupName||('#'+it.groupId)}」#${it.cardIndex??'?'}` : (it.library==='private'?'私人':'公开')));
+        if(it.initiator && it.initiator!==auth.account) head.appendChild(el('span',null,`发起者 ${it.initiator}`));
+        head.appendChild(el('span',null,`提醒 ${it.remindAt}`));
+        if(Number.isFinite(it.inMinutes)) head.appendChild(el('span',null, it.inMinutes>=0 ? `${it.inMinutes} 分钟后` : '已到点'));
+        line.appendChild(head);
+        const c=el('div','ucontent');
+        c.textContent=`日程 ${it.eventStart||it.time||'—'}${it.repeatTime?`（${it.repeatTime}${it.repeatUntil?'，重复到 '+it.repeatUntil:''}）`:''}${it.location?`｜地点 ${it.location}`:''}`;
+        line.appendChild(c);
+        box.appendChild(line);
+      }
+    }catch(e){
+      box.appendChild(el('div','empty','提醒预览读取失败：'+String(e.message||e)));
+    }
+  }
+
+  function startReminderLoop(){
+    stopReminderLoop();
+    if(!auth) return;
+    remindStatusText('已开启');
+    pollDueReminders();
+    loadUpcomingReminders();
+    loadMailbox();
+    loadExtendRequests();
+    loadNotices();
+    renderReport().then(renderGroups); // 取周报后重绘卡片行，让「今日已打卡」的按钮正确置灰
+    startChatLoop(); // 登录后开启好友聊天轮询（新消息 / 未读数）
+    remindTimer=setInterval(pollDueReminders, REMIND_CHECK_MS);
+    mailTimer=setInterval(()=>{ loadMailbox(); loadExtendRequests(); loadNotices(); }, REMIND_CHECK_MS);
+  }
+  function stopReminderLoop(){
+    if(remindTimer){ clearInterval(remindTimer); remindTimer=null; }
+    if(mailTimer){ clearInterval(mailTimer); mailTimer=null; }
+    stopChatLoop(); // 退出/注销后停止聊天轮询并重置聊天面板
+    resetChatPanel();
+    remindStatusText('未登录');
+    const box=$('remindBox');
+    if(box){ box.textContent=''; box.appendChild(el('div','empty','请先登录账号')); }
+    mailUnreadText('');
+    const mbox=$('mailBox');
+    if(mbox){ mbox.textContent=''; mbox.appendChild(el('div','empty','请先登录账号')); }
+    noticeUnreadText('');
+    const nbox=$('noticeBox');
+    if(nbox){ nbox.textContent=''; nbox.appendChild(el('div','empty','请先登录账号')); }
+    const ebox=$('extReqBox');
+    if(ebox){ ebox.textContent=''; ebox.appendChild(el('div','empty','请先登录账号')); }
+    weekReportCache=null;
+    const rmeta=$('reportMeta'); if(rmeta) rmeta.textContent='';
+    const rbox=$('reportBox');
+    if(rbox){ rbox.textContent=''; rbox.appendChild(el('div','empty','请先登录账号')); }
+    const ep=$('extendPicker');
+    if(ep) ep.style.display='none';
+  }
+
+  // ---- 收件箱（站内邮件）：编号 42 = mailbox.list / 43 = mailbox.read / 44 = mailbox.remove ----
+  // 本人的日程提醒到点时，服务器在「弹窗提醒」之外，把提醒邮件自动投递到本人的收件箱；
+  // 轮询用 postTask 直连（与提醒轮询一致），不触发私人卡片备份
+  let mailTimer = null;
+  let mailBusy = false;
+
+  function mailUnreadText(t){ const s=$('mailUnread'); if(s) s.textContent=t||''; }
+
+  async function loadMailbox(){
+    if(!auth || mailBusy) return;
+    mailBusy=true;
+    const box=$('mailBox'); box.textContent='';
+    try{
+      const d = await postTask(42, { account: auth.account });
+      const r = d.result || d;
+      const mails = (r && Array.isArray(r.mails)) ? r.mails : [];
+      mailUnreadText(r && Number.isFinite(r.unread) && r.unread>0 ? `未读 ${r.unread} 封` : '');
+      if(!mails.length){ box.appendChild(el('div','empty','（收件箱为空：日程提醒到点、好友申请、卡片加入申请、延期申请等都会自动抄送一份到这里）')); return; }
+      for(const m of mails){
+        const line=el('div','uentry');
+        const head=el('div','uhead');
+        head.appendChild(el('span',null,`${m.readAt?'📧':'📬'} ${m.title||'（无标题）'}${m.readAt?'':'（未读）'}`));
+        head.appendChild(el('span',null,new Date(m.createdAt).toLocaleString('zh-CN',{hour12:false})));
+        const spacer=el('span'); spacer.style.flex='1'; head.appendChild(spacer);
+        if(!m.readAt){
+          const okBtn=el('button','copy','已读');
+          okBtn.onclick=()=>markMailRead(m.id);
+          head.appendChild(okBtn);
+        }
+        const delBtn=el('button','copy','删除');
+        delBtn.onclick=()=>removeMailById(m.id);
+        head.appendChild(delBtn);
+        line.appendChild(head);
+        const c=el('div','ucontent');
+        c.textContent=m.body||'';
+        line.appendChild(c);
+        box.appendChild(line);
+      }
+    }catch(e){
+      mailUnreadText('');
+      box.appendChild(el('div','empty','收件箱读取失败：'+String(e.message||e)));
+    }finally{
+      mailBusy=false;
+    }
+  }
+
+  async function markMailRead(id){
+    if(!auth) return;
+    try{
+      await postTask(43, { account: auth.account, id });
+      await loadMailbox();
+    }catch(err){
+      addLogEntry('in','收件箱',`标记已读失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function removeMailById(id){
+    if(!auth) return;
+    try{
+      await postTask(44, { account: auth.account, id });
+      await loadMailbox();
+    }catch(err){
+      addLogEntry('in','收件箱',`删除邮件失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function markAllMailsRead(){
+    if(!auth) return;
+    try{
+      await postTask(43, { account: auth.account, all: true });
+      await loadMailbox();
+    }catch(err){
+      addLogEntry('in','收件箱',`全部已读失败：${String(err.message||err)}`);
+    }
+  }
+
+  async function clearMailbox(){
+    if(!auth) return;
+    if(!confirm('确定清空收件箱里的全部提醒邮件吗？此操作不可恢复。')) return;
+    try{
+      await postTask(44, { account: auth.account, all: true });
+      await loadMailbox();
+    }catch(err){
+      addLogEntry('in','收件箱',`清空邮箱失败：${String(err.message||err)}`);
+    }
+  }
+
+  // ---- 好友聊天：编号 45 chat.list / 46 chat.messages / 47 chat.send-text / 48 chat.send-card / 49 chat.accept-card ----
+  // 仅好友之间可互发消息；可把自己发起的公开卡片发给对方邀请 TA 加入。轮询用 postTask 直连，不触发私人卡片备份
+  const CHAT_CHECK_MS = 10000;
+  let chatTimer = null;
+  let chatBusy = false;
+  let chatPeer = null; // 当前会话的好友账号
+
+  function chatStatusText(t){ const s=$('chatStatus'); if(s) s.textContent=t||''; }
+
+  function chatTimeStr(ts){
+    try{ return new Date(ts).toLocaleString('zh-CN',{hour12:false,month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
+  }
+
+  function updateChatInputState(){
+    const on=!!(auth && chatPeer);
+    $('chatInput').disabled=!on;
+    $('chatSendBtn').disabled=!on;
+    $('chatCardBtn').disabled=!on;
+    $('chatGroupBtn').disabled=!on;
+  }
+
+  // 会话列表：全部好友在列（没聊过天的也可以发起会话），附最后一条消息与未读数
+  async function loadChatList(silent){
+    const box=$('chatSide');
+    if(!auth){
+      chatStatusText('未登录');
+      box.textContent='';
+      box.appendChild(el('div','empty','请先登录账号'));
+      return;
+    }
+    if(chatBusy && silent) return;
+    chatBusy=true;
+    try{
+      const d=await postTask(45,{account:auth.account});
+      const r=d.result||d;
+      const convs=(r&&Array.isArray(r.conversations))?r.conversations:[];
+      const unread=(r&&Number.isFinite(r.unread))?r.unread:0;
+      chatStatusText(`已开启：每 ${CHAT_CHECK_MS/1000} 秒自动检查${unread>0?`｜未读 ${unread} 条`:''}`);
+      box.textContent='';
+      if(!convs.length){ box.appendChild(el('div','empty','（暂无好友，先到用户列表添加好友）')); return; }
+      for(const c of convs){
+        const item=el('div','chat-side-item'+(chatPeer===c.peer?' active':''));
+        const head=el('div','cs-head');
+        head.appendChild(el('span','cs-name',c.peer));
+        if(c.unread>0) head.appendChild(el('span','cs-unread',`${c.unread} 条未读`));
+        item.appendChild(head);
+        item.appendChild(el('div','cs-last', c.lastSummary ? `${c.lastFromMe?'我：':(c.peer+'：')}${c.lastSummary}` : '（开始聊天）'));
+        item.onclick=()=>openChat(c.peer);
+        box.appendChild(item);
+      }
+    }catch(e){
+      if(!silent){
+        box.textContent='';
+        box.appendChild(el('div','empty','聊天列表读取失败：'+String(e.message||e)));
+      }
+    }finally{
+      chatBusy=false;
+    }
+  }
+
+  // 打开与某好友的会话并拉取消息（拉取即把对方发来的未读消息标记为已读）
+  async function openChat(peer){
+    if(!auth) return;
+    chatPeer=peer;
+    $('chatPeer').textContent=`与 ${peer} 聊天中`;
+    updateChatInputState();
+    for(const n of document.querySelectorAll('.chat-side-item')) n.classList.remove('active');
+    await loadChatMessages(true);
+    loadChatList(true);
+    try{ $('chatInput').focus(); }catch(e){ /* 忽略 */ }
+  }
+
+  // 消息记录（编号 46）：文字与卡片邀请混排；卡片邀请可点击「接受邀请」加入卡片
+  async function loadChatMessages(silent){
+    if(!auth||!chatPeer) return;
+    const box=$('chatMsgs');
+    const stick=box.scrollHeight-box.scrollTop-box.clientHeight<40;
+    try{
+      const d=await postTask(46,{account:auth.account, withAccount:chatPeer});
+      const r=d.result||d;
+      const list=(r&&Array.isArray(r.messages))?r.messages:[];
+      box.textContent='';
+      if(!list.length){ box.appendChild(el('div','empty','（还没有消息，发一条试试）')); return; }
+      for(const m of list){
+        const mine=m.fromAccount===auth.account;
+        const msg=el('div','chat-msg '+(mine?'me':'peer'));
+        if(m.kind==='card'){
+          msg.appendChild(el('span',null,m.text||''));
+          msg.appendChild(renderChatCardMsg(m));
+        }else if(m.kind==='group'){
+          msg.appendChild(el('span',null,m.text||''));
+          msg.appendChild(renderChatGroupMsg(m));
+        }else{
+          msg.appendChild(el('span',null,m.text));
+        }
+        msg.appendChild(el('span','mtime',`${mine?'我':m.fromAccount} · ${chatTimeStr(m.createdAt)}`));
+        box.appendChild(msg);
+      }
+      if(stick||silent) box.scrollTop=box.scrollHeight;
+    }catch(e){
+      if(!silent) box.appendChild(el('div','empty','消息读取失败：'+String(e.message||e)));
+    }
+  }
+
+  // 卡片邀请气泡：发送时刻的卡片字段快照 + 接受状态 / 「接受邀请」按钮
+  function renderChatCardMsg(m){
+    const c=m.card||{};
+    const wrap=el('div','chat-cardmsg');
+    const rows=[['目的',c.purpose],['事件',c.event],['时间',c.time],['地点',c.location],['人数',`${c.count ?? 1}/${c.capacity ?? 1}`]];
+    for(const [label,val] of rows){
+      const row=el('div','cc-row');
+      row.appendChild(el('span','cc-label',label+'：'));
+      row.appendChild(el('span','cc-val',val||'—'));
+      wrap.appendChild(row);
+    }
+    if(c.needApproval===true){
+      const row=el('div','cc-row');
+      row.appendChild(el('span','cc-label','该卡片需要创建者同意，接受后自动发送加入申请'));
+      wrap.appendChild(row);
+    }
+    const incoming=!!(auth && m.toAccount===auth.account);
+    if(m.acceptedAt){
+      wrap.appendChild(el('div','cc-state', incoming?'✓ 已接受邀请（'+chatTimeStr(m.acceptedAt)+'）':'✓ 对方已接受邀请'));
+    }else if(incoming){
+      const okBtn=el('button','copy','接受邀请');
+      okBtn.title='加入这张卡片：需要申请的卡片会自动向创建者发送加入申请，同时成为卡片组成员';
+      okBtn.onclick=()=>acceptInvite(m.id);
+      wrap.appendChild(okBtn);
+    }else{
+      wrap.appendChild(el('div','cc-state wait','等待对方接受…'));
+    }
+    return wrap;
+  }
+
+  // 卡片组邀请气泡：发送时刻的组快照（组号/组名/卡片数）+ 接受状态 / 「接受邀请」按钮
+  function renderChatGroupMsg(m){
+    const g=m.group||{};
+    const wrap=el('div','chat-cardmsg');
+    const rows=[['卡片组',`#${m.groupId ?? (g.id ?? '-')} ${g.name||'-'}`],['创建者',g.owner||'-'],['卡片数',`${g.cardCount ?? 0} 张`]];
+    for(const [label,val] of rows){
+      const row=el('div','cc-row');
+      row.appendChild(el('span','cc-label',label+'：'));
+      row.appendChild(el('span','cc-val',val));
+      wrap.appendChild(row);
+    }
+    const hintRow=el('div','cc-row');
+    hintRow.appendChild(el('span','cc-label','接受后你将成为卡片组成员，并自动加入组内未满的卡片'));
+    wrap.appendChild(hintRow);
+    const incoming=!!(auth && m.toAccount===auth.account);
+    if(m.acceptedAt){
+      wrap.appendChild(el('div','cc-state', incoming?'✓ 已接受邀请（'+chatTimeStr(m.acceptedAt)+'）':'✓ 对方已接受邀请'));
+    }else if(incoming){
+      const okBtn=el('button','copy','接受邀请');
+      okBtn.title='加入这个卡片组：成为成员并自动加入组内未满的卡片';
+      okBtn.onclick=()=>acceptGroupInvite(m.id);
+      wrap.appendChild(okBtn);
+    }else{
+      wrap.appendChild(el('div','cc-state wait','等待对方接受…'));
+    }
+    return wrap;
+  }
+
+  // 发送文字消息（编号 47）
+  async function sendChatMsg(){
+    if(!auth||!chatPeer) return;
+    const input=$('chatInput');
+    const text=input.value.trim();
+    if(!text) return;
+    input.value='';
+    try{
+      const d=await postTask(47,{account:auth.account, toAccount:chatPeer, text});
+      const r=d.result||d;
+      addLogEntry('in','好友聊天',(r&&r.message)||`已向 ${chatPeer} 发送消息`);
+      await loadChatMessages(true);
+      loadChatList(true);
+    }catch(err){
+      input.value=text;
+      addLogEntry('in','好友聊天',`发送失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 「发送我的卡片」：弹出小窗口，列出我创建的公开卡片组内未完成的卡片供选择（编号 54 按创建者+公开过滤）
+  let chatCardPick = null; // 弹窗中当前选中的 {groupId, cardIndex, groupName}
+
+  function closeChatCardPicker(){
+    $('chatPicker').style.display='none';
+  }
+
+  function pickChatCard(g, card){
+    chatCardPick={groupId:g.id, cardIndex:card.index, groupName:g.name};
+    for(const n of document.querySelectorAll('#chatCardList .cpd-item')) n.classList.remove('active');
+    const node=document.querySelector(`#chatCardList .cpd-item[data-gid="${g.id}"][data-cidx="${card.index}"]`);
+    if(node) node.classList.add('active');
+    $('chatCardSendBtn').disabled=false;
+    $('chatCardPickHint').textContent=`已选择卡片组「${g.name}」的卡片 #${card.index}`;
+  }
+
+  async function openChatCardPicker(){
+    if(!auth||!chatPeer) return;
+    const list=$('chatCardList');
+    chatCardPick=null;
+    $('chatCardSendBtn').disabled=true;
+    $('chatCardPickHint').textContent='未选择卡片';
+    $('chatCardPeerName').textContent=chatPeer;
+    list.textContent='';
+    list.appendChild(el('div','empty','正在读取卡片…'));
+    $('chatPicker').style.display='flex';
+    try{
+      const d=await postTask(54,{account:auth.account, userId:currentUserId()});
+      const r=d.result||d;
+      const groups=((r&&Array.isArray(r.groups))?r.groups:[])
+        .filter(g=>g.role==='owner' && g.library==='public');
+      list.textContent='';
+      const hasCards=groups.some(g=>(g.cards||[]).some(c=>!c.completedAt));
+      if(!hasCards){
+        list.appendChild(el('div','empty','没有可发送的卡片：只有你创建的公开卡片组内未完成的卡片才能发送。可先点「确定」创建公开卡片（自动建组），或在「我的卡片组」里创建公开组并添加卡片'));
+        return;
+      }
+      for(const g of groups){
+        for(const card of (g.cards||[])){
+          if(card.completedAt) continue; // 已完成卡片不再发送
+          const c=card.content||{};
+          const item=el('div','cpd-item');
+          item.dataset.gid=g.id;
+          item.dataset.cidx=card.index;
+          item.appendChild(el('div','ci-title',`组「${g.name}」#${g.id} · 卡片 #${card.index} ${c.purpose||'-'} / ${c.event||'-'}`));
+          const rows=[['时间',c.time],['地点',c.location],['人数',`${c.count ?? 1}/${c.capacity ?? 2}`]];
+          for(const [label,val] of rows){
+            const row=el('div','ci-row');
+            row.appendChild(el('span','ci-label',label+'：'));
+            row.appendChild(el('span','ci-val',val||'—'));
+            item.appendChild(row);
+          }
+          if(c.needApproval===true) item.appendChild(el('div','ci-label','需要审批：好友接受后自动向你发送加入申请'));
+          item.onclick=()=>pickChatCard(g, card);
+          item.ondblclick=()=>{ pickChatCard(g, card); sendCardInvite(); };
+          list.appendChild(item);
+        }
+      }
+    }catch(err){
+      list.textContent='';
+      list.appendChild(el('div','empty','卡片列表读取失败：'+String(err.message||err)));
+    }
+  }
+
+  // 发送卡片邀请（编号 48）：把弹窗中选中的组内卡片发给对方
+  async function sendCardInvite(){
+    if(!auth||!chatPeer) return;
+    const pick=chatCardPick;
+    if(!pick||!Number.isInteger(pick.groupId)||!Number.isInteger(pick.cardIndex)){
+      $('chatCardPickHint').textContent='请先在上方选择一张卡片';
+      return;
+    }
+    closeChatCardPicker();
+    try{
+      const d=await postTask(48,{account:auth.account, toAccount:chatPeer, groupId:pick.groupId, cardIndex:pick.cardIndex});
+      const r=d.result||d;
+      addLogEntry('in','发送卡片',(r&&r.message)||`已把卡片发送给 ${chatPeer}`);
+      await loadChatMessages(true);
+      loadChatList(true);
+    }catch(err){
+      addLogEntry('in','发送卡片',`发送失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 接受卡片邀请（编号 49）：加入该组内卡片并成为组成员；「需要申请」的卡片自动转为向创建者发送加入申请
+  async function acceptInvite(messageId){
+    if(!auth) return;
+    try{
+      const d=await postTask(49,{account:auth.account, messageId});
+      const r=d.result||d;
+      addLogEntry('in','接受邀请',(r&&r.message)||'已处理卡片邀请');
+      await loadChatMessages(true);
+      loadChatList(true);
+      await loadLib();          // 加入成功后刷新公开卡片组库
+      await renderGroups();     // 以及我的卡片组（同时成为组成员）
+      renderPrivateLib();       // 同步本地备份
+      loadCardRequests();
+      loadUpcomingReminders();  // 新日程可能带来新的提醒
+    }catch(err){
+      addLogEntry('in','接受邀请',`接受失败：${String(err.message||err)}`);
+      await loadChatMessages(true); // 卡片可能已被删除/已满/已完成，刷新气泡状态
+    }
+  }
+
+  // 「发送卡片组」：弹出小窗口，列出我创建的卡片组供选择（编号 54 按创建者过滤）
+  let chatGroupPickId = null; // 弹窗中当前选中的卡片组 id
+
+  function closeChatGroupPicker(){
+    $('chatGroupPicker').style.display='none';
+  }
+
+  function pickChatGroup(groupId){
+    chatGroupPickId=groupId;
+    for(const n of document.querySelectorAll('#chatGroupList .cpd-item')) n.classList.remove('active');
+    const node=document.querySelector(`#chatGroupList .cpd-item[data-groupid="${groupId}"]`);
+    if(node) node.classList.add('active');
+    $('chatGroupSendBtn').disabled=false;
+    $('chatGroupPickHint').textContent=`已选择卡片组 #${groupId}`;
+  }
+
+  async function openChatGroupPicker(){
+    if(!auth||!chatPeer) return;
+    const list=$('chatGroupList');
+    chatGroupPickId=null;
+    $('chatGroupSendBtn').disabled=true;
+    $('chatGroupPickHint').textContent='未选择卡片组';
+    $('chatGroupPeerName').textContent=chatPeer;
+    list.textContent='';
+    list.appendChild(el('div','empty','正在读取卡片组…'));
+    $('chatGroupPicker').style.display='flex';
+    try{
+      const d=await postTask(54,{account:auth.account, userId:currentUserId()});
+      const r=d.result||d;
+      const groups=((r&&Array.isArray(r.groups))?r.groups:[]).filter(g=>g.role==='owner');
+      list.textContent='';
+      if(!groups.length){
+        list.appendChild(el('div','empty','没有可发送的卡片组：只有你创建的卡片组才能发送。先在「卡片组」面板创建并往里添加小事件卡片'));
+        return;
+      }
+      for(const g of groups){
+        const item=el('div','cpd-item');
+        item.dataset.groupid=g.id;
+        item.appendChild(el('div','ci-title',`#${g.id} ${g.name}`));
+        const rows=[['卡片数',`${g.cardCount} 张`],['成员',`${g.memberCount} 人${g.members&&g.members.length?'（'+g.members.join('、')+'）':''}`]];
+        for(const [label,val] of rows){
+          const row=el('div','ci-row');
+          row.appendChild(el('span','ci-label',label+'：'));
+          row.appendChild(el('span','ci-val',val));
+          item.appendChild(row);
+        }
+        item.appendChild(el('div','ci-label','对方接受后成为组成员，并自动加入组内未满的卡片'));
+        item.onclick=()=>pickChatGroup(g.id);
+        item.ondblclick=()=>{ pickChatGroup(g.id); sendGroupInvite(); };
+        list.appendChild(item);
+      }
+    }catch(err){
+      list.textContent='';
+      list.appendChild(el('div','empty','卡片组列表读取失败：'+String(err.message||err)));
+    }
+  }
+
+  // 发送卡片组邀请（编号 59）：把弹窗中选中的卡片组发给对方
+  async function sendGroupInvite(){
+    if(!auth||!chatPeer) return;
+    const groupId=chatGroupPickId;
+    if(groupId===null||!Number.isInteger(groupId)){
+      $('chatGroupPickHint').textContent='请先在上方选择一个卡片组';
+      return;
+    }
+    closeChatGroupPicker();
+    try{
+      const d=await postTask(59,{account:auth.account, toAccount:chatPeer, groupId});
+      const r=d.result||d;
+      addLogEntry('in','发送卡片组',(r&&r.message)||`已把卡片组 #${groupId} 发送给 ${chatPeer}`);
+      await loadChatMessages(true);
+      loadChatList(true);
+    }catch(err){
+      addLogEntry('in','发送卡片组',`发送失败：${String(err.message||err)}`);
+    }
+  }
+
+  // 接受卡片组邀请（编号 60）：加入卡片组（成员名单 + 自动加入组内未满的卡片）
+  async function acceptGroupInvite(messageId){
+    if(!auth) return;
+    try{
+      const d=await postTask(60,{account:auth.account, messageId});
+      const r=d.result||d;
+      addLogEntry('in','接受卡片组邀请',(r&&r.message)||'已加入卡片组');
+      await loadChatMessages(true);
+      loadChatList(true);
+      await renderGroups();     // 卡片组面板出现新加入的组
+      await loadLib();          // 公开卡片组库人数同步更新
+      loadUpcomingReminders();  // 组内卡片可能带来新的提醒
+    }catch(err){
+      addLogEntry('in','接受卡片组邀请',`接受失败：${String(err.message||err)}`);
+      await loadChatMessages(true); // 组可能已被删除，刷新气泡状态
+    }
+  }
+
+  function resetChatPanel(){
+    chatPeer=null;
+    $('chatPeer').textContent='选择左侧好友开始聊天';
+    $('chatMsgs').textContent='';
+    $('chatMsgs').appendChild(el('div','empty','（未选择会话）'));
+    $('chatSide').textContent='';
+    $('chatSide').appendChild(el('div','empty','请先登录账号'));
+    $('chatPicker').style.display='none';
+    $('chatGroupPicker').style.display='none';
+    $('chatInput').value='';
+    updateChatInputState();
+    chatStatusText('未登录');
+  }
+
+  function startChatLoop(){
+    stopChatLoop();
+    if(!auth) return;
+    loadChatList();
+    chatTimer=setInterval(()=>{
+      loadChatList(true);
+      if(chatPeer) loadChatMessages(true);
+    }, CHAT_CHECK_MS);
+  }
+  function stopChatLoop(){
+    if(chatTimer){ clearInterval(chatTimer); chatTimer=null; }
+  }
+
+  $('chatRefreshBtn').onclick=()=>{ loadChatList(); if(chatPeer) loadChatMessages(); };
+  $('chatSendBtn').onclick=sendChatMsg;
+  $('chatCardBtn').onclick=openChatCardPicker;
+  $('chatCardSendBtn').onclick=sendCardInvite;
+  $('chatCardCancelBtn').onclick=closeChatCardPicker;
+  $('chatCardCloseBtn').onclick=closeChatCardPicker;
+  $('chatPicker').addEventListener('click',(e)=>{ if(e.target===$('chatPicker')) closeChatCardPicker(); });
+  $('chatGroupBtn').onclick=openChatGroupPicker;
+  $('chatGroupSendBtn').onclick=sendGroupInvite;
+  $('chatGroupCancelBtn').onclick=closeChatGroupPicker;
+  $('chatGroupCloseBtn').onclick=closeChatGroupPicker;
+  $('chatGroupPicker').addEventListener('click',(e)=>{ if(e.target===$('chatGroupPicker')) closeChatGroupPicker(); });
+  $('groupCreateBtn').onclick=createGroupByName;
+  $('groupNameInput').addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); createGroupByName(); } });
+  $('groupRefreshBtn').onclick=renderGroups;
+  $('postRefreshBtn').onclick=renderPostcards;
+  $('reportRefreshBtn').onclick=()=>{ renderReport().then(renderGroups); };
+  $('extReqRefreshBtn').onclick=loadExtendRequests;
+  $('noticeRefreshBtn').onclick=loadNotices;
+  $('noticeReadAllBtn').onclick=markAllNoticesRead;
+  $('noticeClearBtn').onclick=clearNotices;
+  $('extendSubmitBtn').onclick=submitExtend;
+  $('extendCancelBtn').onclick=closeExtendDialog;
+  $('extendCloseBtn').onclick=closeExtendDialog;
+  $('extUseEnd').addEventListener('change',syncExtendEndDisabled);
+  $('extendPicker').addEventListener('click',(e)=>{ if(e.target===$('extendPicker')) closeExtendDialog(); });
+  document.addEventListener('keydown',(e)=>{
+    if(e.key==='Escape'&&$('chatPicker').style.display!=='none') closeChatCardPicker();
+    if(e.key==='Escape'&&$('extendPicker').style.display!=='none') closeExtendDialog();
+  });
+  $('chatInput').addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); sendChatMsg(); } });
+
+  auth=loadAuth();
+  updateAuthPanel();
+  startReminderLoop(); // 页面打开时若已登录，直接开启提醒轮询与邮箱检查
+  $('mailRefreshBtn').onclick=()=>loadMailbox();
+  $('mailReadAllBtn').onclick=markAllMailsRead;
+  $('mailClearBtn').onclick=clearMailbox;
+  $('authRegisterBtn').onclick=()=>doAuth(0);
+  $('authLoginBtn').onclick=()=>doAuth(1);
+  $('authLogoutBtn').onclick=doLogout;
+  $('authDeleteBtn').onclick=doDelete;
+
+  // 发送任务到服务器（默认编号 0 = ai.ask，走完整 AI 流程）
+  async function send(){
+    if(sending) return;
+    const sid=$('serviceSel').value;
+    if(Number(sid)!==10 && Number(sid)!==11 && !auth){
+      $('hint').textContent='请先注册并登录账号，服务器才提供服务';
+      return;
+    }
+    const task=$('payload').value.trim();
+    if(task===''){ $('hint').textContent='请输入任务内容'; return; }
+    let payload={task};
+    // 非 AI 服务时允许使用原始 JSON 载荷
+    if(Number(sid)!==0 && Number(sid)!==4){
+      const rawPayload=$('payload').value.trim();
+      if(rawPayload){ try{ payload=JSON.parse(rawPayload); }catch(e){ $('hint').textContent='payload 不是合法 JSON：'+e.message; return; } }
+    } else {
+      // 用户资料与卡片由服务器保存，客户端只提交任务与账号身份
+      payload={task, userId: currentUserId(), account: auth?auth.account:null};
+    }
+    $('hint').textContent='';
+    sending=true;
+    const b=$('sendBtn'); b.disabled=true; b.textContent='发送中…';
+    const n=now();
+    try{
+      const data=await callService(Number(sid), payload);
+      addLogEntry('out',`服务 ${sid}  ${n}  已发送到服务器，服务器已执行`,{serviceId:Number(sid),payload});
+      const result=data.result || data;
+      if(Number(sid)===0){
+        // ai.ask：更新回复框与卡片
+        const parts=result.parts || {};
+        const replyText=(typeof parts.reply==='string'&&parts.reply)?parts.reply:'（无回复）';
+        $('replyBox').textContent=replyText;
+        curCard=(result.workingCard && result.workingCard.card) || null;
+        renderCard(curCard);
+        updateConfirmBtn();
+        // AI 按提示词中的【用户列表】填入 invite / uninvite 并由服务器执行的邀请结果
+        if(Array.isArray(result.invited) && result.invited.length){
+          for(const it of result.invited){
+            addLogEntry('in','AI 邀请', it.ok
+              ? (it.already ? `${it.account} 已在当前卡片的参与人中` : `已按你的要求邀请 ${it.account} 加入当前卡片`)
+              : `邀请 ${it.account} 失败：${it.reason}`);
+          }
+        }
+        if(Array.isArray(result.uninvited) && result.uninvited.length){
+          for(const it of result.uninvited){
+            addLogEntry('in','AI 取消邀请', it.ok
+              ? `已按你的要求把 ${it.account} 从当前卡片参与人中移除`
+              : `移除 ${it.account} 失败：${it.reason}`);
+          }
+        }
+        $('payload').value='';
+      }
+      addLogEntry('in',`服务 ${sid} 回调 @ ${now()}`,result);
+      loadStatus();
+      loadLib();
+      renderGroups();
+    } catch(err){
+      addLogEntry('out',`服务 ${sid}  ${n}  服务器返回错误`,{serviceId:Number(sid),payload,error:String(err.message||err)});
+    } finally {
+      sending=false; b.disabled=false; b.textContent='发送到服务器';
+      await refreshUsers();
+    }
+  }
+
+  // 确定：编号 7 = ai.complete（自动创建卡片组收纳该卡片：公开卡片→公开卡片组库，私人卡片→私人卡片组库）
+  async function doneAi(){
+    if(sending) return;
+    if(!auth){ $('hint2').textContent='请先注册并登录账号，服务器才提供服务'; return; }
+    const n=now();
+    try{
+      await syncCapacity(true); // 先把输入框里的人数上限同步到服务器，再确定
+      const data=await callService(7,{userId:currentUserId(), account: auth?auth.account:null});
+      const r=data.result||data;
+      addLogEntry('in',`确定完成 ${n}`,(typeof r.message==='string')?r.message:r);
+      $('replyBox').textContent='（暂无回复）';
+      curCard=null;
+      curPublic=false; // 确定后工作卡重置，「公开/私人」回到默认「私人」
+      curFriendOnly=false; // 确定后「仅好友」回到默认「所有人」
+      curCapacity=1; // 确定后「人数上限」回到默认 1
+      curNeedApproval=false; // 确定后「需要申请」回到默认「直接加入」
+      curConflicts=[];
+      $('capInput').value='1';
+      renderCard(curCard);
+      updateVisBtn();
+      updateConfirmBtn();
+      if($('manualBar').style.display!=='none') prefillManualForm(); // 工作卡已重置，手动表单同步清空
+    } catch(err){
+      addLogEntry('in',`确定失败 ${n}`,`code ${err.message||''}`);
+      await loadConflicts(); // 冲突导致失败时把冲突清单展示出来
+    }
+    await refreshUsers();
+    await loadLib();
+    await renderGroups(); // 确定后自动建组，刷新「我的卡片组」面板
+    await loadCardRequests();
+    loadUpcomingReminders(); // 新卡片落库后刷新「日程提醒」预览
+  }
+
+  // 取消：编号 6 = ai.reset（一键清空工作卡，恢复空卡）
+  async function cancelAi(){
+    if(sending) return;
+    if(!auth){ $('hint2').textContent='请先注册并登录账号，服务器才提供服务'; return; }
+    try{
+      await callService(6,{userId:currentUserId()});
+      curCard=null;
+      curPublic=false;
+      curFriendOnly=false;
+      curCapacity=1;
+      curNeedApproval=false;
+      curConflicts=[];
+      $('capInput').value='1';
+      renderCard(curCard);
+      updateVisBtn();
+      updateConfirmBtn();
+      if($('manualBar').style.display!=='none') prefillManualForm(); // 工作卡已清空，手动表单同步清空
+      $('replyBox').textContent='（暂无回复）';
+    } catch(err){
+      $('hint2').textContent='取消失败：'+String(err.message||err);
+    }
+  }
+
+  // 清空对话记录：编号 8 = ai.clear-context（清空服务器上本账号的对话记录；用户资料库长期保留）
+  async function clearCtx(){
+    if(sending) return;
+    if(!auth){ addLogEntry('in','清空对话记录','请先登录账号'); return; }
+    if(!confirm('确定清空服务器上保存的对话记录吗？此操作不可恢复。')) return;
+    try{
+      await callService(8,{userId:currentUserId()});
+      addLogEntry('in','清空对话记录','已清空服务器上的对话记录');
+      await refreshUsers();
+    } catch(err){
+      addLogEntry('in','清空对话记录',`清空失败：${String(err.message||err)}`);
+    }
+  }
+
+  $('sendBtn').onclick=send;
+  $('doneBtn').onclick=doneAi;
+  $('cancelBtn').onclick=cancelAi;
+  $('clearCtxBtn').onclick=clearCtx;
+  $('clearBtn').onclick=()=>{ logEl.innerHTML=''; logEl.appendChild(el('div','empty','日志已清空')); };
+  $('refreshConnBtn').onclick=refreshConnection;
+  $('refreshServicesBtn').onclick=async()=>{ $('refreshServicesBtn').textContent='查询中…'; await refreshServices(); $('refreshServicesBtn').textContent='查询服务器服务'; };
+  $('refreshUsersBtn').onclick=refreshUsers;
+  $('visBtn').onclick=toggleVis;
+  $('foBtn').onclick=toggleFriendOnly;
+  $('naBtn').onclick=toggleNeedApproval;
+  $('manualBtn').onclick=toggleManualCard;
+  $('manualCloseBtn').onclick=toggleManualCard;
+  $('manualApplyBtn').onclick=applyManualCard;
+  for(const [id] of MANUAL_FIELDS){
+    $(id).addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); applyManualCard(); } });
+  }
+  $('inviteBtn').onclick=inviteFriend;
+  $('inviteInput').addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); inviteFriend(); } });
+  $('srvApplyBtn').onclick=applyServer;
+  $('srvInput').addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); applyServer(); } });
+  $('capInput').addEventListener('change',()=>syncCapacity(false));
+  $('cardReqRefreshBtn').onclick=loadCardRequests;
+  $('userSearchBtn').onclick=loadUsers;
+  $('userSearch').addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); loadUsers(); } });
+  $('inboxRefreshBtn').onclick=loadInbox;
+  $('payload').addEventListener('keydown',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); } });
+  load();
+</script>
+</body>
+</html>

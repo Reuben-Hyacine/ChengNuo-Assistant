@@ -1,0 +1,56 @@
+{
+  "apiType": "stageMode",
+  "buildOption": {
+    "resOptions": {
+      "copyCodeResource": {
+        "enable": false
+      }
+    }
+  },
+  "buildOptionSet": [
+    {
+      "name": "release",
+      "arkOptions": {
+        "obfuscation": {
+          "ruleOptions": {
+            "enable": false,
+            "files": [
+              "./obfuscation-rules.txt"
+            ]
+          }
+        }
+      }
+    },
+    {
+      // 配合工程级 buildModeSet 的 emulator 模式：剔除 AGC 仅含 arm64-v8a 的原生库
+      // （entry/libs/x86_64/libagccrypto.so 为 x86_64 模拟器替代实现，不能被过滤）
+      "name": "emulator",
+      "napiLibFilterOption": {
+        "excludes": [
+          "**/arm64-v8a/libagccrypto.so",
+          "**/arm64-v8a/libagcmbedtls.so"
+        ]
+      }
+    },
+  ],
+  "buildModeBinder": [
+    {
+      // 工程级 buildModeSet 的 emulator 模式 → 应用本模块 buildOptionSet 的 emulator 条目
+      "buildModeName": "emulator",
+      "mappings": [
+        {
+          "targetName": "default",
+          "buildOptionName": "emulator"
+        }
+      ]
+    }
+  ],
+  "targets": [
+    {
+      "name": "default"
+    },
+    {
+      "name": "ohosTest"
+    }
+  ]
+}

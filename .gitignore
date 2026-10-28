@@ -1,0 +1,28 @@
+# ---- Build outputs / caches ----
+.cache/
+.idea/
+.ui-shots/
+**/.hvigor/
+**/build/
+**/oh_modules/
+node_modules/
+hvigor.log
+log
+
+# ---- Nested git repos ----
+tool/
+
+# ---- Local-only art / screenshots (kept on disk, never pushed) ----
+image/
+
+# ---- Secrets: NEVER commit ----
+.env
+*api-key.txt
+
+# ---- Dev data dirs (DB with test accounts) ----
+data/
+data-backup-*/
+
+# ---- OS junk ----
+Thumbs.db
+.DS_Store

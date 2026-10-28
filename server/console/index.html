@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>服务器控制台</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #0d1117; color: #c9d1d9;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: #161b22; border-bottom: 1px solid #30363d;
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  .mode { display: flex; }
+  .seg {
+    background: #21262d; color: #8b949e; border: 1px solid #30363d;
+    border-radius: 0; padding: 5px 14px; font-size: 12px; cursor: pointer;
+  }
+  .seg:first-child { border-radius: 6px 0 0 6px; }
+  .seg:last-child { border-radius: 0 6px 6px 0; border-right: 1px solid #30363d; }
+  .seg.on { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8b949e; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #8b949e; display: inline-block; }
+  .dot.on { background: #3fb950; }
+  .dot.off { background: #f85149; }
+  .spacer { flex: 1; }
+  button {
+    background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+    border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  }
+  button:hover { background: #30363d; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.primary { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+  button.primary:hover { background: #388bfd; }
+  .banner {
+    margin: 8px 16px 0; padding: 8px 12px; border-radius: 6px;
+    background: #3d2e00; color: #d29922; border: 1px solid #614b12;
+    font-size: 12px; display: none;
+  }
+  .composer {
+    padding: 12px 16px 10px; border-bottom: 1px solid #30363d;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .composer textarea {
+    width: 100%; background: #161b22; color: #c9d1d9;
+    border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px;
+    font-size: 13px; font-family: Consolas, monospace; resize: vertical;
+  }
+  .composer textarea:focus { outline: none; border-color: #1f6feb; }
+  .composer textarea:disabled { opacity: .55; cursor: not-allowed; }
+  label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 4px; }
+  .sendbar { display: flex; align-items: center; gap: 10px; }
+  .sendbar button { display: none; }
+  .sendbar #confirmBtn { display: inline-block; }
+  .hint { font-size: 12px; color: #f85149; }
+  #log {
+    flex: 1; overflow-y: auto; padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .entry { background: #161b22; border: 1px solid #30363d; border-radius: 8px; }
+  .entry-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-bottom: 1px solid #30363d;
+    font-size: 12px; color: #8b949e; font-family: Consolas, monospace;
+  }
+  .entry-body { padding: 4px 0 8px; }
+  .section { padding: 6px 12px; }
+  .section + .section { border-top: 1px dashed #21262d; }
+  .section-title { font-size: 12px; color: #58a6ff; margin-bottom: 4px; font-weight: 600; }
+  .section pre {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 8px 10px; font-size: 12px; line-height: 1.5; color: #c9d1d9;
+    overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+    max-height: 260px; overflow-y: auto;
+    font-family: Consolas, "Courier New", monospace;
+  }
+  .section.pending pre { color: #8b949e; font-style: italic; }
+  .section.error .section-title { color: #f85149; }
+  .section.ok .section-title { color: #3fb950; }
+  .copy {
+    float: right; background: #21262d; color: #8b949e;
+    border: 1px solid #30363d; border-radius: 4px;
+    padding: 2px 10px; font-size: 11px; cursor: pointer; margin-left: 8px;
+  }
+  .copy:hover { color: #c9d1d9; }
+  .cardbar {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    margin: 0 16px 12px; padding: 10px 14px;
+  }
+  .cardbar-head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; font-weight: 600; color: #c9d1d9; margin-bottom: 8px;
+  }
+  .cardbar-head .card-hint { font-size: 11px; color: #8b949e; font-weight: 400; }
+  .cardgrid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+  .cfield {
+    display: flex; flex-direction: column; gap: 2px;
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 6px 9px; min-height: 44px;
+  }
+  .cfield .cflabel { font-size: 11px; color: #8b949e; }
+  .cfield .cfval { font-size: 13px; color: #c9d1d9; word-break: break-all; line-height: 1.35; }
+  .cfield.empty .cfval { color: #6e7681; font-style: italic; }
+  #replyBox {
+    font-size: 14px; color: #c9d1d9; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-all; min-height: 24px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>服务器控制台</h1>
+  <div class="mode">
+    <button class="seg on" id="modeAuto" data-mode="auto">自动模式</button>
+    <button class="seg" id="modeManual" data-mode="manual">手动模式</button>
+  </div>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">检查中…</span></div>
+  <div class="spacer"></div>
+  <a href="/console/reports" style="color:#58a6ff;font-size:13px;text-decoration:none;">举报管理</a>
+  <button id="clearCtxBtn">清空资料与对话</button>
+  <button id="clearBtn">清空日志</button>
+</header>
+<div class="banner" id="banner"></div>
+<div class="composer">
+  <div>
+    <label>输入框（任务，Enter 发送）</label>
+    <textarea id="task" rows="3" placeholder="例如：把参考数据中的句子翻译成英文"></textarea>
+  </div>
+  <div id="jsonWrap">
+    <label>JSON 框（手动模式：粘贴 AI 返回的 JSON，自动模式无需填写）</label>
+    <textarea id="json" rows="4" placeholder="手动模式下，在此粘贴要解析的 JSON，然后点击「解析 JSON」"></textarea>
+  </div>
+  <div class="sendbar">
+    <button class="primary" id="sendBtn">发送</button>
+    <button class="primary" id="genPromptBtn">生成提示词</button>
+    <button id="parseBtn">解析 JSON</button>
+    <button class="primary" id="confirmBtn">确定</button>
+    <span class="hint" id="sendHint"></span>
+  </div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>当前卡片 <span class="card-hint">（有信息显示卡片，无信息显示空卡）</span></span>
+    <button id="cancelBtn">取消</button>
+  </div>
+  <div class="cardgrid" id="cardFields"></div>
+</div>
+<div class="cardbar">
+  <div class="cardbar-head">
+    <span>AI 回复 <span class="card-hint">（最新一轮回复）</span></span>
+  </div>
+  <div id="replyBox">（暂无回复）</div>
+</div>
+<div id="log"></div>
+<script>
+  const $ = id => document.getElementById(id);
+  const logEl = $('log');
+  let seq = 0;
+  let sending = false;
+  let auto = true;
+  let curCard = null;
+
+  function el(tag, cls, text) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function addSection(entry, title, cls, withCopy) {
+    const section = el('div', 'section ' + (cls || ''));
+    const label = el('div', 'section-title', title);
+    if (withCopy) {
+      const btn = el('button', 'copy', '复制');
+      btn.addEventListener('click', () => {
+        copyText(pre.textContent || '');
+        hint('已复制');
+      });
+      label.appendChild(btn);
+    }
+    section.appendChild(label);
+    const pre = el('pre');
+    section.appendChild(pre);
+    entry.body.appendChild(section);
+    return pre;
+  }
+
+  function addEntry() {
+    const entry = el('div', 'entry');
+    entry.head = el('div', 'entry-head');
+    entry.body = el('div', 'entry-body');
+    entry.appendChild(entry.head);
+    entry.appendChild(entry.body);
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
+    return entry;
+  }
+
+  function setHead(entry, text) {
+    entry.head.textContent = text;
+  }
+
+  function markSection(pre, cls) {
+    pre.parentElement.className = 'section ' + cls;
+  }
+
+  const PART_BLOCKS = [
+    { key: 'reply', title: '回复', json: false },
+    { key: 'cards', title: '卡片信息', json: true },
+    { key: 'users', title: '用户信息', json: true },
+    { key: 'status', title: '状态', json: true }
+  ];
+
+  function addParts(entry, pendingText, copyOnReply) {
+    return PART_BLOCKS.map(b => {
+      const pre = addSection(entry, b.title + '（' + b.key + '）', 'pending', (b.json ? false : copyOnReply));
+      pre.textContent = pendingText;
+      return { key: b.key, json: b.json, pre };
+    });
+  }
+
+  function fillParts(refs, parts) {
+    for (const r of refs) {
+      markSection(r.pre, '');
+      const val = parts ? parts[r.key] : null;
+      r.pre.textContent = r.json ? JSON.stringify(val, null, 2) : (typeof val === 'string' ? val : '');
+    }
+  }
+
+  function fillPartsError(refs, message) {
+    refs.forEach((r, i) => {
+      markSection(r.pre, i === 0 ? 'error' : '');
+      r.pre.textContent = i === 0 ? message : '';
+    });
+  }
+
+  function hint(text) {
+    $('sendHint').textContent = text;
+  }
+
+  function now() {
+    return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  }
+
+  async function loadStatus() {
+    try {
+      const resp = await fetch('/api/ai/status');
+      const result = await resp.json();
+      const data = result.data || {};
+      const stage = stageLabel(data.flowStatus);
+      curCard = (data.workingCard && data.workingCard.card) || null;
+      updateConfirmBtn();
+      renderCard(curCard);
+      // 回显最近一次 AI 回复（含客户端经路由发起的调用）
+      $('replyBox').textContent = (typeof data.lastReply === 'string' && data.lastReply !== '')
+        ? data.lastReply
+        : '（暂无回复）';
+      if (data.configured) {
+        $('dot').className = 'dot on';
+        $('statusText').textContent = data.model + ' · 已配置' + stage;
+      } else {
+        $('dot').className = 'dot off';
+        $('statusText').textContent = 'AI 未配置' + stage;
+        const banner = $('banner');
+        banner.style.display = 'block';
+        banner.textContent = 'AI 未配置：请在服务器目录的 ai-api-key.txt 中填写 API key，然后重启服务器。';
+      }
+    } catch {
+      $('dot').className = 'dot off';
+      $('statusText').textContent = '无法连接服务器';
+    }
+  }
+
+  const STAGES = ['获取信息', '确认信息', '确定'];
+
+  function stageLabel(fs) {
+    if (!fs || typeof fs.state !== 'number' || fs.state < 0 || fs.state > 2) {
+      return '';
+    }
+    return ' · 阶段' + fs.state + '（' + STAGES[fs.state] + (fs.filled ? '，已填齐' : '') + '）';
+  }
+
+  // 「确定」按钮：对话进行中禁用，直到「事件」「时间」两项都已确定才开放
+  function canConfirm(card) {
+    return !!(card && card.event && card.time);
+  }
+
+  function updateConfirmBtn() {
+    $('confirmBtn').disabled = !canConfirm(curCard);
+  }
+
+  const CARD_LABELS = [
+    ['purpose', '目的'],
+    ['event', '事件'],
+    ['time', '时间'],
+    ['repeatTime', '重复时间'],
+    ['repeatUntil', '重复到何时'],
+    ['location', '地点'],
+    ['participant', '参与人']
+  ];
+
+  function renderCard(card) {
+    const box = $('cardFields');
+    box.textContent = '';
+    let hasAny = false;
+    for (const [key, label] of CARD_LABELS) {
+      const val = (card && card[key] != null) ? String(card[key]) : '';
+      if (val) hasAny = true;
+      const cell = el('div', 'cfield' + (val ? '' : ' empty'));
+      cell.appendChild(el('span', 'cflabel', label));
+      cell.appendChild(el('span', 'cfval', val || '（空）'));
+      box.appendChild(cell);
+    }
+    $('cancelBtn').disabled = !hasAny;
+  }
+
+  function setMode() {
+    const manual = !auto;
+    $('modeAuto').classList.toggle('on', auto);
+    $('modeManual').classList.toggle('on', manual);
+    $('sendBtn').style.display = auto ? '' : 'none';
+    $('genPromptBtn').style.display = manual ? '' : 'none';
+    $('parseBtn').style.display = manual ? '' : 'none';
+    $('jsonWrap').style.display = auto ? 'none' : '';
+    $('json').disabled = auto;
+    hint('');
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = true;
+      try { document.execCommand('copy'); } catch { ok = false; }
+      document.body.removeChild(ta);
+      return ok;
+    }
+  }
+
+  async function send() {
+    if (sending) return;
+    const task = $('task').value.trim();
+    if (task === '') { hint('请输入任务内容'); return; }
+    // 用户资料与卡片均由服务器长期保存，管理台只发送任务内容
+    const body = { task: task, userId: 1 };
+
+    sending = true;
+    $('sendBtn').disabled = true;
+    hint('');
+
+    seq += 1;
+    const entry = addEntry();
+    setHead(entry, '[#' + seq + '] ' + now() + ' · 请求中…');
+
+    const inputPre = addSection(entry, '输入内容');
+    inputPre.textContent = JSON.stringify(body, null, 2);
+
+    const promptPre = addSection(entry, '构建的提示词', 'pending');
+    promptPre.textContent = '构建中…';
+
+    const rawPre = addSection(entry, '返回的 JSON（AI 原始响应）', 'pending');
+    rawPre.textContent = '等待响应…';
+
+    const outRefs = addParts(entry, '等待解析…', true);
+
+    const start = performance.now();
+    try {
+      const resp = await fetch('/api/ai/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const result = await resp.json();
+      const ms = Math.round(performance.now() - start);
+      if (result.code === 0 && result.data) {
+        const d = result.data;
+        markSection(promptPre, '');
+        promptPre.textContent = (d.messages || [])
+          .map(m => '[' + m.role + ']\n' + m.content)
+          .join('\n\n');
+        markSection(rawPre, '');
+        rawPre.textContent = d.raw ?? '';
+        fillParts(outRefs, d.parts);
+        curCard = (d.workingCard && d.workingCard.card) || null;
+        updateConfirmBtn();
+        renderCard(curCard);
+        const replyText = (d.parts && typeof d.parts.reply === 'string' && d.parts.reply) ? d.parts.reply : '（无回复）';
+        $('replyBox').textContent = replyText;
+        $('task').value = '';
+        setHead(entry, '[#' + seq + '] ' + now() + ' · ' + ms + 'ms · 成功 · ' + (d.model || ''));
+      } else {
+        markSection(promptPre, 'error');
+        promptPre.textContent = '未生成';
+        markSection(rawPre, 'error');
+        rawPre.textContent = 'code ' + result.code;
+        fillPartsError(outRefs, result.message || '未知错误');
+        setHead(entry, '[#' + seq + '] ' + now() + ' · ' + ms + 'ms · 失败');
+      }
+    } catch (err) {
+      markSection(promptPre, 'error');
+      promptPre.textContent = '请求异常';
+      markSection(rawPre, 'error');
+      rawPre.textContent = '';
+      fillPartsError(outRefs, err.message);
+      setHead(entry, '[#' + seq + '] ' + now() + ' · 失败');
+    } finally {
+      sending = false;
+      $('sendBtn').disabled = false;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  }
+
+  async function genPrompt() {
+    if (sending) return;
+    const task = $('task').value.trim();
+    if (task === '') { hint('请输入任务内容'); return; }
+
+    sending = true;
+    $('genPromptBtn').disabled = true;
+    $('parseBtn').disabled = true;
+    hint('');
+
+    seq += 1;
+    const entry = addEntry();
+    setHead(entry, '[#' + seq + '] ' + now() + ' · 手动 · 生成提示词中…');
+
+    const pre = addSection(entry, '构建的提示词（复制后发送给 AI，再把返回的 JSON 粘贴到 JSON 框）', 'pending', true);
+    pre.textContent = '构建中…';
+
+    const start = performance.now();
+    try {
+      const resp = await fetch('/api/ai/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task })
+      });
+      const result = await resp.json();
+      const ms = Math.round(performance.now() - start);
+      if (result.code === 0 && result.data) {
+        const text = (result.data.messages || [])
+          .map(m => '[' + m.role + ']\n' + m.content)
+          .join('\n\n');
+        markSection(pre, '');
+        pre.textContent = text;
+        const copied = await copyText(text);
+        setHead(entry, '[#' + seq + '] ' + now() + ' · ' + ms + 'ms · 提示词已生成' + (copied ? '（已复制）' : ''));
+      } else {
+        markSection(pre, 'error');
+        pre.textContent = result.message || ('code ' + result.code);
+        setHead(entry, '[#' + seq + '] ' + now() + ' · 失败');
+      }
+    } catch (err) {
+      markSection(pre, 'error');
+      pre.textContent = err.message;
+      setHead(entry, '[#' + seq + '] ' + now() + ' · 失败');
+    } finally {
+      sending = false;
+      $('genPromptBtn').disabled = false;
+      $('parseBtn').disabled = false;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  }
+
+  async function parseJson() {
+    if (sending) return;
+    const raw = $('json').value.trim();
+    if (raw === '') { hint('请先在 JSON 框粘贴内容'); return; }
+
+    sending = true;
+    $('genPromptBtn').disabled = true;
+    $('parseBtn').disabled = true;
+    hint('');
+
+    seq += 1;
+    const entry = addEntry();
+    setHead(entry, '[#' + seq + '] ' + now() + ' · 手动 · 解析中…');
+
+    const inPre = addSection(entry, '粘贴的 JSON');
+    inPre.textContent = raw;
+
+    const outRefs = addParts(entry, '解析中…', true);
+
+    const start = performance.now();
+    try {
+      const resp = await fetch('/api/ai/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw })
+      });
+      const result = await resp.json();
+      const ms = Math.round(performance.now() - start);
+      if (result.code === 0 && result.data) {
+        markSection(inPre, '');
+        fillParts(outRefs, result.data.parts);
+        setHead(entry, '[#' + seq + '] ' + now() + ' · ' + ms + 'ms · 解析成功');
+      } else {
+        markSection(inPre, '');
+        fillPartsError(outRefs, result.message || ('解析失败，code ' + result.code));
+        setHead(entry, '[#' + seq + '] ' + now() + ' · 解析失败');
+      }
+    } catch (err) {
+      markSection(inPre, '');
+      fillPartsError(outRefs, err.message);
+      setHead(entry, '[#' + seq + '] ' + now() + ' · 解析失败');
+    } finally {
+      sending = false;
+      $('genPromptBtn').disabled = false;
+      $('parseBtn').disabled = false;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  }
+
+  async function confirmCards() {
+    if (sending) return;
+    sending = true;
+    $('confirmBtn').disabled = true;
+    hint('');
+
+    seq += 1;
+    const entry = addEntry();
+    setHead(entry, '[#' + seq + '] ' + now() + ' · 确定中…');
+
+    const pre = addSection(entry, '确定结果', 'pending');
+    pre.textContent = '确定中…';
+
+    try {
+      const resp = await fetch('/api/ai/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: 1 })
+      });
+      const result = await resp.json();
+      if (result.code === 0 && result.data) {
+        markSection(pre, 'ok');
+        pre.textContent = result.data.message || JSON.stringify(result.data, null, 2);
+        setHead(entry, '[#' + seq + '] ' + now() + ' · 确定成功');
+      } else {
+        markSection(pre, 'error');
+        pre.textContent = result.message || ('code ' + result.code);
+        setHead(entry, '[#' + seq + '] ' + now() + ' · 确定失败');
+      }
+    } catch (err) {
+      markSection(pre, 'error');
+      pre.textContent = err.message;
+      setHead(entry, '[#' + seq + '] ' + now() + ' · 确定失败');
+    } finally {
+      sending = false;
+      loadStatus();
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+  }
+
+  $('modeAuto').addEventListener('click', () => { auto = true; setMode(); });
+  $('modeManual').addEventListener('click', () => { auto = false; setMode(); });
+  $('sendBtn').addEventListener('click', send);
+  $('genPromptBtn').addEventListener('click', genPrompt);
+  $('parseBtn').addEventListener('click', parseJson);
+  $('confirmBtn').addEventListener('click', confirmCards);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const jsonActive = document.activeElement === $('json');
+      if (jsonActive) { e.preventDefault(); parseJson(); return; }
+      const taskActive = document.activeElement === $('task');
+      if (taskActive) {
+        e.preventDefault();
+        if (auto) { send(); return; }
+        genPrompt();
+      }
+    }
+  });
+  $('clearBtn').addEventListener('click', () => {
+    logEl.textContent = '';
+    seq = 0;
+  });
+  // 「取消」：一键清空当前卡片，恢复空卡
+  $('cancelBtn').addEventListener('click', async () => {
+    if (sending) return;
+    try {
+      await fetch('/api/ai/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+      });
+    } catch (err) {
+      hint('取消失败：' + err.message);
+    }
+    loadStatus();
+  });
+  // 「清空资料与对话」：一键清空用户信息与历史对话
+  $('clearCtxBtn').addEventListener('click', async () => {
+    if (sending) return;
+    if (!confirm('确定清空全部用户信息和历史对话吗？此操作不可恢复。')) return;
+    try {
+      const resp = await fetch('/api/ai/clear-context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+      });
+      const result = await resp.json();
+      if (result.code === 0) {
+        hint('已清空用户信息与历史对话');
+      } else {
+        hint('清空失败：' + (result.message || result.code));
+      }
+    } catch (err) {
+      hint('清空失败：' + err.message);
+    }
+  });
+  // 路由入站调用日志：追加到对话流水（含客户端经路由发起的调用）
+  let lastActId = 0;
+  async function loadActivity() {
+    try {
+      const resp = await fetch('/api/route/activity');
+      const result = await resp.json();
+      const list = result.data || [];
+      for (const a of list) {
+        if (a.id <= lastActId) continue;
+        lastActId = a.id;
+        const entry = addEntry();
+        let t = a.time;
+        try { t = new Date(a.time).toLocaleTimeString('zh-CN', { hour12: false }); } catch { /* 原样 */ }
+        setHead(entry, '[入站 #' + a.id + '] ' + t + ' · 服务 ' + a.serviceId + ' ' + (a.service || ''));
+        const pre = addSection(entry, '路由调用', '');
+        pre.textContent = JSON.stringify({ serviceId: a.serviceId, service: a.service, summary: a.summary ?? null }, null, 2);
+      }
+    } catch { /* 服务器未连接时静默 */ }
+  }
+
+  setMode();
+  loadStatus();
+  loadActivity();
+  // 轮询：服务器控制台实时回显客户端经路由发起的调用（卡片 / 回复 / 入站日志）
+  setInterval(() => {
+    loadStatus();
+    loadActivity();
+  }, 3000);
+</script>
+</body>
+</html>

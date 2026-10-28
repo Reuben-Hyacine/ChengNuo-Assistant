@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>开发者登录 · 程诺助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117; color: #c9d1d9; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  .card {
+    width: 320px; background: #161b22; border: 1px solid #30363d;
+    border-radius: 10px; padding: 30px 26px 26px;
+  }
+  h1 { font-size: 18px; margin-bottom: 6px; text-align: center; }
+  .sub { font-size: 12px; color: #8b949e; text-align: center; margin-bottom: 18px; }
+  label { font-size: 12px; color: #8b949e; display: block; margin: 14px 0 6px; }
+  input {
+    width: 100%; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d;
+    border-radius: 6px; padding: 9px 10px; font-size: 14px;
+  }
+  input:focus { outline: none; border-color: #1f6feb; }
+  .msg { font-size: 12px; color: #f85149; margin-top: 12px; min-height: 16px; text-align: center; }
+  button {
+    width: 100%; margin-top: 18px; background: #1f6feb; border: 1px solid #1f6feb;
+    color: #fff; border-radius: 6px; padding: 10px 0; font-size: 14px; cursor: pointer;
+  }
+  button:hover { background: #388bfd; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>开发者登录</h1>
+  <p class="sub">程诺助手服务器管理台，仅限开发者访问</p>
+  <label for="user">账号</label>
+  <input id="user" autocomplete="username">
+  <label for="password">密码</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <div class="msg" id="msg"></div>
+  <button id="loginBtn" onclick="doLogin()">登录</button>
+</div>
+<script>
+  async function doLogin() {
+    const user = document.getElementById('user').value.trim();
+    const password = document.getElementById('password').value;
+    const msg = document.getElementById('msg');
+    const btn = document.getElementById('loginBtn');
+    if (!user || !password) {
+      msg.textContent = '请输入账号和密码';
+      return;
+    }
+    btn.disabled = true;
+    msg.textContent = '';
+    try {
+      const resp = await fetch('/api/dev/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user, password })
+      });
+      const body = await resp.json();
+      if (resp.ok && body.code === 0) {
+        location.href = '/console';
+        return;
+      }
+      msg.textContent = body.message || '登录失败';
+    } catch {
+      msg.textContent = '网络错误，请稍后重试';
+    }
+    btn.disabled = false;
+  }
+  document.getElementById('password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      doLogin();
+    }
+  });
+  (async () => {
+    try {
+      const resp = await fetch('/api/dev/check');
+      const body = await resp.json();
+      if (body.data && body.data.authed) {
+        location.href = '/console';
+      }
+    } catch { /* 未登录或网络异常时留在本页 */ }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "程诺助手主模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "AI 辅助的日程任务活动管理"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "程诺助手"
+    },
+    {
+      "name": "app_slogan",
+      "value": "对自己许下的每一个承诺"
+    },
+    {
+      "name": "login_button",
+      "value": "登录"
+    },
+    {
+      "name": "login_hint",
+      "value": "老账号输账号名或邮箱登录，新用户请注册"
+    },
+    {
+      "name": "account_placeholder",
+      "value": "邮箱（老账号可输账号名）"
+    },
+    {
+      "name": "password_placeholder",
+      "value": "密码"
+    },
+    {
+      "name": "tab_schedule",
+      "value": "日程"
+    },
+    {
+      "name": "tab_friends",
+      "value": "好友"
+    },
+    {
+      "name": "tab_discover",
+      "value": "发现"
+    },
+    {
+      "name": "tab_profile",
+      "value": "我的"
+    },
+    {
+      "name": "page_create_title",
+      "value": "记日程"
+    },
+    {
+      "name": "page_inbox_title",
+      "value": "收件箱"
+    },
+    {
+      "name": "search_placeholder",
+      "value": "搜索"
+    },
+    {
+      "name": "demo_footer",
+      "value": "程诺助手 v1.0.0 · 演示版"
+    },
+    {
+      "name": "lock_card_display_name",
+      "value": "程诺助手待办"
+    },
+    {
+      "name": "lock_card_desc",
+      "value": "锁屏查看进行中的卡片，完成/打卡/延时/取消一步直达"
+    },
+    {
+      "name": "location_permission_reason",
+      "value": "用于获取当前所在城市，展示当地天气"
+    }
+  ]
+}

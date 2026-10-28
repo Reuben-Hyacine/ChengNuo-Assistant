@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>举报管理</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #0d1117; color: #c9d1d9;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: #161b22; border-bottom: 1px solid #30363d;
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header a { color: #58a6ff; font-size: 13px; text-decoration: none; }
+  header a:hover { text-decoration: underline; }
+  .summary { font-size: 12px; color: #8b949e; }
+  .spacer { flex: 1; }
+  button {
+    background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+    border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  }
+  button:hover { background: #30363d; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.primary { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+  button.primary:hover { background: #388bfd; }
+  button.danger { background: #b62324; border-color: #b62324; color: #fff; }
+  button.danger:hover { background: #da3633; }
+  .banner {
+    margin: 8px 16px 0; padding: 8px 12px; border-radius: 6px;
+    font-size: 12px; display: none;
+  }
+  .banner.ok { background: #12261e; color: #3fb950; border: 1px solid #1c4a2d; }
+  .banner.err { background: #2d1416; color: #f85149; border: 1px solid #611a1c; }
+  #list {
+    flex: 1; overflow-y: auto; padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .report { background: #161b22; border: 1px solid #30363d; border-radius: 8px; }
+  .report-head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 12px; border-bottom: 1px solid #30363d;
+    font-size: 12px; color: #8b949e; font-family: Consolas, monospace;
+  }
+  .report-head .rid { color: #c9d1d9; font-weight: 600; }
+  .badge {
+    padding: 2px 10px; border-radius: 10px; font-size: 12px; white-space: nowrap;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  .badge.pending { background: #3d2e00; color: #d29922; border: 1px solid #614b12; }
+  .badge.dismissed { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+  .badge.actioned { background: #12261e; color: #3fb950; border: 1px solid #1c4a2d; }
+  .badge.reason { background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb66; }
+  .report-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .kv { font-size: 13px; line-height: 1.5; }
+  .kv .k { color: #8b949e; font-size: 12px; margin-right: 6px; }
+  .kv .v { color: #c9d1d9; word-break: break-all; }
+  .detail {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 8px 10px; font-size: 13px; line-height: 1.5; color: #c9d1d9;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .snapshot {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 8px 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 14px;
+  }
+  .target { font-size: 12px; }
+  .target .live-ok { color: #3fb950; }
+  .target .live-warn { color: #d29922; }
+  .target .live-gone { color: #8b949e; }
+  .actions { display: flex; gap: 8px; padding-top: 2px; }
+  .handled { font-size: 12px; color: #8b949e; }
+  .empty { text-align: center; color: #8b949e; font-size: 13px; padding: 48px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>举报管理</h1>
+  <a href="/console">« 服务器控制台</a>
+  <span class="summary" id="summary"></span>
+  <span class="spacer"></span>
+  <button class="primary" onclick="load()">刷新</button>
+</header>
+<div class="banner ok" id="okBanner"></div>
+<div class="banner err" id="errBanner"></div>
+<div id="list"></div>
+<script>
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+function fmtTime(iso) {
+  if (!iso) { return ''; }
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) { return String(iso); }
+  return d.toLocaleString('zh-CN', { hour12: false });
+}
+const STATUS_LABEL = { pending: '待处理', dismissed: '已驳回', actioned: '已处理' };
+const ACTION_LABEL = { dismiss: '驳回', takedown: '下架' };
+function targetLine(target) {
+  if (!target) { return ''; }
+  if (!target.groupExists) {
+    return `<span class="live-gone">目标状态：卡片组已删除</span>`;
+  }
+  if (!target.stillPublic) {
+    return `<span class="live-warn">目标状态：卡片组已转为私人</span>`;
+  }
+  if (!target.cardExists) {
+    return `<span class="live-warn">目标状态：卡片仍在公开组，但被举报卡已移除</span>`;
+  }
+  return `<span class="live-ok">目标状态：公开中</span>`;
+}
+function cardTitle(report) {
+  return report.cardEvent || report.cardPurpose || '未命名卡片';
+}
+function render(reports) {
+  const list = document.getElementById('list');
+  const pending = reports.filter(r => r.status === 'pending').length;
+  document.getElementById('summary').textContent =
+    `待处理 ${pending} · 共 ${reports.length} 条`;
+  if (reports.length === 0) {
+    list.innerHTML = '<div class="empty">暂无举报记录</div>';
+    return;
+  }
+  const html = reports.map(report => {
+    const snapshot = `
+      <div class="snapshot">
+        <div class="kv"><span class="k">卡片组</span><span class="v">${esc(report.groupName)} #${report.groupId} · 创建者 ${esc(report.ownerAccount)}</span></div>
+        <div class="kv"><span class="k">卡片</span><span class="v">#${report.cardIndex} ${esc(cardTitle(report))}</span></div>
+        <div class="kv"><span class="k">时间</span><span class="v">${esc(report.cardTime || '—')}</span></div>
+        <div class="kv"><span class="k">地点</span><span class="v">${esc(report.cardLocation || '—')}</span></div>
+      </div>`;
+    const detail = report.detail
+      ? `<div class="detail">${esc(report.detail)}</div>` : '';
+    const actions = report.status === 'pending'
+      ? `<div class="actions">
+           <button onclick="act(${report.id}, 'dismiss', '确认驳回该举报？举报将归档且不通知举报人。')">驳回</button>
+           <button class="danger" onclick="act(${report.id}, 'takedown', '确认下架？整个卡片组将转为私人并通知创建者与相关用户。')">下架（转私人）</button>
+         </div>`
+      : `<div class="handled">已${ACTION_LABEL[report.action] ?? '处理'}于 ${esc(fmtTime(report.handledAt))}</div>`;
+    return `
+      <div class="report">
+        <div class="report-head">
+          <span class="rid">#${report.id}</span>
+          <span class="badge ${report.status}">${STATUS_LABEL[report.status] ?? report.status}</span>
+          <span class="badge reason">${esc(report.reasonLabel ?? report.reason)}</span>
+          <span class="spacer"></span>
+          <span>举报人 ${esc(report.reporterAccount)}</span>
+          <span>${esc(fmtTime(report.createdAt))}</span>
+        </div>
+        <div class="report-body">
+          ${snapshot}
+          ${detail}
+          <div class="target">${targetLine(report.target)}</div>
+          ${actions}
+        </div>
+      </div>`;
+  }).join('');
+  list.innerHTML = html;
+}
+function showBanner(kind, text) {
+  const el = document.getElementById(kind === 'ok' ? 'okBanner' : 'errBanner');
+  el.textContent = text;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+async function load() {
+  try {
+    const resp = await fetch('/api/reports');
+    const body = await resp.json();
+    if (!resp.ok || body.code !== 0) {
+      showBanner('err', `加载失败：HTTP ${resp.status} ${body.message ?? ''}`);
+      return;
+    }
+    render(body.data?.reports ?? []);
+  } catch (err) {
+    showBanner('err', `加载失败：${err.message ?? err}`);
+  }
+}
+async function act(id, action, confirmText) {
+  if (!window.confirm(confirmText)) {
+    return;
+  }
+  try {
+    const resp = await fetch(`/api/reports/${id}/${action}`, { method: 'POST' });
+    const body = await resp.json();
+    if (!resp.ok || body.code !== 0) {
+      showBanner('err', `处理失败：HTTP ${resp.status} ${body.message ?? ''}`);
+      return;
+    }
+    showBanner('ok', body.message ?? '已处理');
+    await load();
+  } catch (err) {
+    showBanner('err', `处理失败：${err.message ?? err}`);
+  }
+}
+load();
+</script>
+</body>
+</html>

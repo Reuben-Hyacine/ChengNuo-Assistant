@@ -1,0 +1,9 @@
+{
+  "name": "@chengnuo/backend",
+  "version": "1.0.0",
+  "description": "程诺客户端后端（路由分流 + 本地数据层）的鸿蒙库形态：本地服务函数调用直答，其余服务转发 server :3000",
+  "main": "Index.ets",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

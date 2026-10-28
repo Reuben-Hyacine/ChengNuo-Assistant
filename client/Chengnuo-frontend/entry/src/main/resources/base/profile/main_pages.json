@@ -1,0 +1,25 @@
+{
+  "src": [
+    "pages/Splash",
+    "pages/Index",
+    "pages/Register",
+    "pages/Setup",
+    "pages/Main",
+    "pages/PetShopPage",
+    "pages/CreatePage",
+    "pages/InboxPage",
+    "pages/GeneralSettings",
+    "pages/PersonalInfo",
+    "pages/WeekReportData",
+    "pages/ConversationsData",
+    "pages/ReminderSettings",
+    "pages/PersonalSpace",
+    "pages/AccountSecurity",
+    "pages/AboutChengNuo",
+    "pages/CountdownPage",
+    "pages/PrivacyPolicy",
+    "pages/UserAgreement",
+    "pages/VersionInfo",
+    "pages/AboutUs"
+  ]
+}

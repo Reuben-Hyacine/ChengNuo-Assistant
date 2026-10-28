@@ -1,0 +1,58 @@
+{
+  app: {
+    // 签名配置不入库：请通过 DevEco Studio → File → Project Structure → Signing Configs 自行配置
+    signingConfigs: [],
+    products: [
+      {
+        name: 'default',
+        signingConfig: 'default',
+        targetSdkVersion: '6.1.0(23)',
+        compatibleSdkVersion: '6.1.0(23)',
+        runtimeOS: 'HarmonyOS',
+        buildOption: {
+          strictMode: {
+            caseSensitiveCheck: true,
+            useNormalizedOHMUrl: true,
+          },
+        },
+      },
+    ],
+    buildModeSet: [
+      {
+        name: 'debug',
+      },
+      {
+        name: 'release',
+      },
+      {
+        name: 'emulator',
+      },
+    ],
+  },
+  modules: [
+    {
+      name: 'backend',
+      srcPath: '../Chengnuo-backend/harmony',
+      targets: [
+        {
+          name: 'default',
+          applyToProducts: [
+            'default',
+          ],
+        },
+      ],
+    },
+    {
+      name: 'entry',
+      srcPath: './entry',
+      targets: [
+        {
+          name: 'default',
+          applyToProducts: [
+            'default',
+          ],
+        },
+      ],
+    },
+  ],
+}

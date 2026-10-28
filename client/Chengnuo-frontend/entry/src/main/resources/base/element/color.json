@@ -1,0 +1,140 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#F7F6F2"
+    },
+    {
+      "name": "brand",
+      "value": "#FF7A59"
+    },
+    {
+      "name": "brand_deep",
+      "value": "#FF5B35"
+    },
+    {
+      "name": "brand_soft",
+      "value": "#FFF1EA"
+    },
+    {
+      "name": "bg_page",
+      "value": "#F7F6F2"
+    },
+    {
+      "name": "bg_card",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "nav_bg",
+      "value": "#F2F1EC"
+    },
+    {
+      "name": "chip_bg",
+      "value": "#F2F1EC"
+    },
+    {
+      "name": "input_bg",
+      "value": "#F5F4EF"
+    },
+    {
+      "name": "text_primary",
+      "value": "#2A2A31"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#6F6F7B"
+    },
+    {
+      "name": "text_tertiary",
+      "value": "#A8A8B2"
+    },
+    {
+      "name": "divider",
+      "value": "#EDEDE8"
+    },
+    {
+      "name": "schedule_bg",
+      "value": "#FFF2E9"
+    },
+    {
+      "name": "schedule_accent",
+      "value": "#FF7A59"
+    },
+    {
+      "name": "schedule_deep",
+      "value": "#E85A33"
+    },
+    {
+      "name": "task_bg",
+      "value": "#EBF1FF"
+    },
+    {
+      "name": "task_accent",
+      "value": "#5B8DEF"
+    },
+    {
+      "name": "task_deep",
+      "value": "#3E6DDB"
+    },
+    {
+      "name": "activity_bg",
+      "value": "#FFF9E3"
+    },
+    {
+      "name": "activity_accent",
+      "value": "#F5A623"
+    },
+    {
+      "name": "activity_deep",
+      "value": "#D98E10"
+    },
+    {
+      "name": "success",
+      "value": "#35B37D"
+    },
+    {
+      "name": "success_soft",
+      "value": "#E6F6EF"
+    },
+    {
+      "name": "warning",
+      "value": "#F5A623"
+    },
+    {
+      "name": "error",
+      "value": "#E5484D"
+    },
+    {
+      "name": "badge_red",
+      "value": "#FF4757"
+    },
+    {
+      "name": "overlay_mask",
+      "value": "#991F1F26"
+    },
+    {
+      "name": "guard_mask",
+      "value": "#01000000"
+    },
+    {
+      "name": "postcard_a_from",
+      "value": "#FFB88C"
+    },
+    {
+      "name": "postcard_a_to",
+      "value": "#FF7A59"
+    },
+    {
+      "name": "postcard_b_from",
+      "value": "#8FBAFF"
+    },
+    {
+      "name": "postcard_b_to",
+      "value": "#5B8DEF"
+    },
+    {
+      "name": "shadow_soft",
+      "value": "#142A2A31"
+    }
+  ]
+}

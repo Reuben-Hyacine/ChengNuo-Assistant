@@ -1,0 +1,21 @@
+{
+  "forms": [
+    {
+      "name": "LockScreenCard",
+      "displayName": "$string:lock_card_display_name",
+      "description": "$string:lock_card_desc",
+      "src": "./ets/form/LockScreenCard.ets",
+      "uiSyntax": "arkts",
+      "isDynamic": true,
+      "isDefault": false,
+      "updateEnabled": true,
+      "scheduledUpdateTime": "10:30",
+      "updateDuration": 1,
+      "defaultDimension": "2*4",
+      "supportDimensions": [
+        "2*4"
+      ],
+      "renderingMode": "autoColor"
+    }
+  ]
+}
