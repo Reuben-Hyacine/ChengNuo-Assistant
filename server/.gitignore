@@ -2,3 +2,17 @@ node_modules/
 .env
 *.log
 *-api-key.txt
+
+# 开发者控制台凭据（dev-auth.json，仅服务器本地）
+dev-auth.json
+
+# 运行时数据文件：默认生成在运行目录（见 src/config.js），绝不入库
+# 词库三件套需入库，显式排除
+*.txt
+!moderation-words.txt
+!sensitive-lexicon.txt
+!sensitive-whitelist.txt
+
+# 数据目录（DATA_DIR 指向时）
+data/
+data-backup-*/
