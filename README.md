@@ -96,6 +96,18 @@ npm install
 npm start        # 默认监听 3000 端口
 ```
 
+### 配置 AI 与天气密钥（自备）
+
+AI 功能（对话建卡、发现页推荐、回忆明信片等）由服务端转发调用 DeepSeek，仓库**不含任何密钥**，请自备：
+
+1. 在 [DeepSeek 开放平台](https://platform.deepseek.com) 创建 API Key
+2. 将 Key 存入 `server/ai-api-key.txt`（纯文本一行），重启服务端生效
+3. 未配置时 AI 接口返回 503，其余功能不受影响
+
+天气功能同样需要 [和风天气](https://console.qweather.com) 的 Key（存入 `server/qweather-api-key.txt`，并在 `server/.env` 设置 `QW_API_HOST`）。
+
+模型、超时、Base URL 等参数均支持 `server/.env` 或环境变量覆盖（见 `server/src/config.js`）；`AI_BASE_URL` 可替换为任意 OpenAI 兼容接口。
+
 ### 运行客户端
 
 1. 使用 DevEco Studio 打开 `client/Chengnuo-frontend`
